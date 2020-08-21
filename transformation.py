@@ -123,3 +123,33 @@ class TransformationArray(np.ndarray):
 
         return tranArray
 
+    @classmethod
+    def lookAts(cls, positions, targets, normals, axis="xy", negativeSide=False):
+        """Alternate constructor to create a Transform from given positions
+
+        Args:
+            positions(Vector3Array): The transform translation and reference point
+            targets(Vector3Array): The pointing direction of first axis
+            normals(Vector3Array): The normal direction of the second axis
+            axis(string): axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
+            negativeSide(bool): Use mirror method to inverse the transformation (negative scaling or inversed rotation)
+                mirror method can be set globally using setMirrorMethod()
+
+        Returns:
+            Transform: the resulting transformation
+        """
+        looks = targets - positions
+        ups = normals.normal()
+
+        if bool(negativeSide):
+            looks *= -1
+            ups *= -1
+
+        rots = Matrix4.lookAts(looks, ups, axis=axis).asQuaternionArray()
+
+        out = cls()
+        out.rotation = rots
+        out.translation = positions
+        return out
+
+

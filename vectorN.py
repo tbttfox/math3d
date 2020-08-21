@@ -215,6 +215,10 @@ class VectorNArray(np.ndarray):
             ret = QuaternionArray.vectoquatproduct(exp, other)
             return ret.toVectorSize(self.N)
 
+    def angle(self, other):
+        dots = self.normal() * other.normal()
+        return np.acos(dots)
+
 
 # Register the default sizes of array dynamically
 VECTOR_BY_SIZE = {}
