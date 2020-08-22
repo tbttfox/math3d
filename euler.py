@@ -2,11 +2,25 @@ import numpy as np
 
 
 class Euler(np.ndarray):
-    def __new__(cls, input_array=None, order='xyz', degrees=False):
-        if input_array is None:
+    """ A 3d Euler rotation with arbitrary axis order
+
+    Parameters
+    ----------
+    inputArray : iterable, optional
+        The input value to create the euler array. It must be an iterable of length 3
+        If not given, defaults to (0, 0, 0)
+    order: str, optional
+        The order in which the axis rotations are applied
+        It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+        Defaults to 'xyz'
+    degrees: bool, optional
+        Whether the angles are given in degrees or radians. Defaults to False (radians)
+    """
+    def __new__(cls, inputArray=None, order='xyz', degrees=False):
+        if inputArray is None:
             ary = np.zeros(3)
         else:
-            ary = np.asarray(input_array, dtype=float)
+            ary = np.asarray(inputArray, dtype=float)
         if ary.size != 3:
             raise ValueError(
                 "Initializer for Vector{0} must be of length {0}".format(3)
@@ -28,48 +42,116 @@ class Euler(np.ndarray):
         return self._degrees
 
     def toRadians(self):
+        """ Return a copy of this object converted to radians
+
+        Returns
+        -------
+        Euler
+            The current orientation in radians
+        """
         if self.degrees:
-            return np.deg2rad(self)
-        return self
+            ret = np.deg2rad(self)
+            ret._degrees = False
+            return ret
+        return self.copy()
 
     def toDegrees(self):
-        if not self.degrees:
-            return np.rad2deg(self)
-        return self
+        """ Return a copy of this object as converted to degrees
 
-    def getReturnType(self, shape):
+        Returns
+        -------
+        Euler
+            The current orientation in Degrees
+
+        """
+        if not self.degrees:
+            ret = np.rad2deg(self)
+            ret._degrees = True
+            return ret
+        return self.copy()
+
+    @classmethod
+    def _getReturnType(cls, shape):
+        """ Get the type for any return values based on the shape of the return value
+        This is mainly for internal use
+
+        Parameters
+        ----------
+        shape: tuple
+            The shape of the output
+
+        Returns
+        -------
+        type
+            The type that the output should have
+        """
         if not shape:
             return None
         if len(shape) == 1:
             if shape[0] == 3:
-                return type(self)
+                return cls
         elif len(shape) == 2:
-            # This could happen with fancy indexing
             if shape[-1] == 3:
                 return EulerArray
-
         return np.ndarray
 
     def __getitem__(self, idx):
         ret = super(Euler, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
+        typ = self._getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
 
     def asMatrix(self):
+        """ Convert this euler object to a Matrix3
+        
+        Returns
+        -------
+        Matrix3
+            The current orientation as a matrix
+
+        """
         return self[None, ...].asMatrixArray()[0]
 
     def asQuaternion(self):
+        """ Convert this euler object to a Quaternion
+
+        Returns
+        -------
+        Quaternion
+            The current orientation as a quaternion
+        """
         return self[None, ...].asQuaternionArray()[0]
 
     def toNewOrder(self, order):
+        """ Create a new euler object that represents the same orientation
+        but composed with a different rotation order
+
+        Returns
+        -------
+        Euler
+            The same spatial orientation but with a different axis order
+        """
         return self[None, ...].toNewOrder(order)[0]
 
 
 class EulerArray(np.ndarray):
-    def __new__(cls, input_array, order='xyz', degrees=False):
-        ary = np.asarray(input_array, dtype=float)
+    """ An array of 3d Euler rotations with a common axis order
+
+    Parameters
+    ----------
+    inputArray : iterable
+        The input value to create the euler array. It must be an iterable with a length
+        multiple of 3
+    order: str, optional
+        The order in which the axis rotations are applied
+        It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+        Defaults to 'xyz'
+    degrees: bool, optional
+        Whether the angles are given in degrees or radians. Defaults to False (radians)
+    """
+    def __new__(cls, inputArray, order='xyz', degrees=False):
+        ary = np.asarray(inputArray, dtype=float)
         ary = ary.reshape((-1, 3))
         ret = ary.view(cls)
         ret.order = order.lower()
@@ -82,12 +164,26 @@ class EulerArray(np.ndarray):
         self.order = getattr(obj, 'order', 'xyz')
         self._degrees = getattr(obj, 'degrees', False)
 
-    def getReturnType(self, shape):
+    @classmethod
+    def _getReturnType(cls, shape):
+        """ Get the type for any return values based on the shape of the return value
+        This is mainly for internal use
+
+        Parameters
+        ----------
+        shape: tuple
+            The shape of the output
+
+        Returns
+        -------
+        type
+            The type that the output should have
+        """
         if not shape:
             return None
         if len(shape) == 2:
             if shape[1] == 3:
-                return type(self)
+                return cls
         elif len(shape) == 1:
             if shape[0] == 3:
                 return Euler
@@ -95,7 +191,7 @@ class EulerArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(EulerArray, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
+        typ = self._getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
@@ -105,32 +201,101 @@ class EulerArray(np.ndarray):
         return self._degrees
 
     def toRadians(self):
+        """ Return a copy of this array as converted to radians
+
+        Returns
+        -------
+        EulerArray
+            The current orientations in radians
+        """
         if self.degrees:
-            return np.deg2rad(self)
+            ret = np.deg2rad(self)
+            ret._degrees = False
+            return ret
         return self
 
     def toDegrees(self):
+        """ Return a copy of this array as converted to degrees
+
+        Returns
+        -------
+        EulerArray
+            The current orientations in degrees
+        """
         if not self.degrees:
-            return np.rad2deg(self)
+            ret = np.rad2deg(self)
+            ret._degrees = True
+            return ret
         return self
 
     def toNewOrder(self, order):
+        """ Create a new EulerArray object that represents the same orientations
+        but composed with a different rotation order
+
+        Returns
+        -------
+        EulerArray
+            The same spatial orientations but with a different axis order
+        """
         q = self.asQuaternionArray()
         return q.asEulerArray(order=order, degrees=self.degrees)
 
     @classmethod
     def zeros(cls, length):
+        """ Alternate constructor to build an array of all-zero Euler orientations
+
+        Parameters
+        ----------
+        length: int
+            The length of the array to create
+        """
         return cls(np.zeros((length, 3)))
 
-    def append(self, v):
-        self.resize((len(self) + 1, 3))
-        self[-1] = v
+    def append(self, value):
+        """ Append an item to the end of this array
+        Euler types will be converted to match degrees or radians
 
-    def extend(self, v):
-        self.resize((len(self) + len(v), 3))
-        self[-len(v):] = v
+        Parameters
+        ----------
+        value: iterable
+            A length-3 iterable to be appended to the end of this array
+        """
+        if isinstance(value, Euler):
+            if self.degrees and not value.degrees:
+                value = np.rad2deg(value)
+            elif not self.degrees and value.degrees:
+                value = np.deg2rad(value)
+
+        self.resize((len(self) + 1, 3))
+        self[-1] = value
+
+    def extend(self, value):
+        """ Extend this array with the given items
+        Euler types will be converted to match degrees or radians
+
+        Parameters
+        ----------
+        value: iterable
+            A multiple-of-length-3 iterable to be appended to the end of this array
+        """
+        value = np.asarray(value)
+        if isinstance(value, EulerArray):
+            if self.degrees and not value.degrees:
+                value = np.rad2deg(value)
+            elif not self.degrees and value.degrees:
+                value = np.deg2rad(value)
+
+        self.resize((len(self) + len(value), 3))
+        self[-len(value):] = value
 
     def asQuaternionArray(self):
+        """ Convert this EulerArray object to a QuaternionArray
+
+        Returns
+        -------
+        QuaternionArray
+            The current orientations as a quaternionArray
+        """
         from .quaternion import QuaternionArray
         # Convert multiple euler triples to quaternions
         eulers = self
@@ -143,8 +308,13 @@ class EulerArray(np.ndarray):
         return result
 
     def asMatrixArray(self):
+        """ Convert this EulerArray object to a Matrix3Array
+
+        Returns
+        -------
+        Matrix3Array
+            The current orientations as a Matrix3Array
+        """
         q = self.asQuaternionArray()
         return q.asMatrixArray()
-
-
 

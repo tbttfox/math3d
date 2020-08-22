@@ -14,30 +14,59 @@ class Quaternion(np.ndarray):
             )
         return ary.view(cls)
 
-    def getReturnType(self, shape):
+    @classmethod
+    def _getReturnType(cls, shape):
+        """ Get the type for any return values based on the shape of the return value
+        This is mainly for internal use
+
+        Parameters
+        ----------
+        shape: tuple
+            The shape of the output
+
+        Returns
+        -------
+        type
+            The type that the output should have
+        """
+
         if not shape:
             return None
         if len(shape) == 1:
             if shape[0] == 4:
-                return type(self)
+                return cls
         elif len(shape) == 2:
             # This could happen with fancy indexing
             if shape[-1] == 4:
-                return self.arrayType
+                return cls.arrayType
 
         return np.ndarray
 
     def __getitem__(self, idx):
         ret = super(Quaternion, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
+        typ = self._getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
 
     def length_squared(self):
+        """ Return the squared length of the quaternion
+
+        Returns
+        -------
+        float:
+            The squared length of the quaternion
+        """
         return (self * self).sum()
 
     def length(self):
+        """ Return the length of the quaternion
+
+        Returns
+        -------
+        float:
+            The length of the quaternion
+        """
         return np.sqrt(self.length_squared())
 
     def __mul__(self, other):
@@ -53,13 +82,50 @@ class Quaternion(np.ndarray):
         return super(Quaternion, self).__mul__(other)
 
     def asMatrix(self):
+        """ Convert the quaternion to a 3x3 matrix
+
+        Returns
+        -------
+        Matrix3:
+            The orientation as a matrix
+        """
         return self[None, :].asMatrixArray()[0]
 
     def asEuler(self, order='xyz', degrees=False):
+        """ Convert the quaternion to an Euler rotation
+
+        Parameters
+        ----------
+        order: str, optional
+            The order in which the axis rotations are applied
+            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+            Defaults to 'xyz'
+        degrees: bool, optional
+            Whether the angles are given in degrees or radians. Defaults to False (radians)
+
+        Returns
+        -------
+        Euler:
+            The converted orientation
+        """
         return self[None, :].asEulerArray(order=order, degrees=degrees)[0]
 
     @staticmethod
     def lookAt(look, up, axis="xy"):
+        """ Alternate constructor to create a quaternion looking at a point
+        and twisted with the given up value
+        Think of the quaternion resting at origin
+
+        Parameters
+        ----------
+        look: iterable
+            A length-3 vector that the primary axis will be pointed at
+        up: iterable
+            A length-3 vector that the secondary axis will be pointed at
+        axis: str, optional
+            Define the primary and secondary axes. Must be one of these options
+            ['xy', 'xz', 'yx', 'yz', 'zx', 'zy']
+        """
         from .matrixN import MatrixNArray
         mats = MatrixNArray.lookAts([look], [up], axis=axis)
         return mats.asQuaternionArray()[0]
@@ -71,12 +137,26 @@ class QuaternionArray(np.ndarray):
         ary = ary.reshape((-1, 4))
         return ary.view(cls)
 
-    def getReturnType(self, shape):
+    @classmethod
+    def _getReturnType(cls, shape):
+        """ Get the type for any return values based on the shape of the return value
+        This is mainly for internal use
+
+        Parameters
+        ----------
+        shape: tuple
+            The shape of the output
+
+        Returns
+        -------
+        type
+            The type that the output should have
+        """
         if not shape:
             return None
         if len(shape) == 2:
             if shape[1] == 4:
-                return type(self)
+                return cls
         elif len(shape) == 1:
             if shape[0] == 4:
                 return Quaternion
@@ -84,37 +164,92 @@ class QuaternionArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(QuaternionArray, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
+        typ = self._getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
 
-    def length_squared(self):
+    def lengthSquared(self):
+        """ Return the squared length of each quaternion
+
+        Returns
+        -------
+        np.ndarray:
+            The squared lengths of the quaternions
+        """
         return np.einsum("ij,ij->i", self, self)
 
     def length(self):
-        return np.sqrt(self.length_squared())
+        """ Return the length of each quaternion
+
+        Returns
+        -------
+        np.ndarray:
+            The lengths of the quaternions
+        """
+        return np.sqrt(self.lengthSquared())
 
     def normal(self):
+        """ Return the normalized quaternions
+
+        Returns
+        -------
+        QuaternionArray:
+            The normalized quaternions
+        """
         return self / self.length()[..., None]
 
     def normalize(self):
+        """ Normalize the quaternions in-place """
         self /= self.length()[..., None]
 
     @classmethod
     def zeros(cls, length):
+        """ Alternate constructor to build an array of quaternions that are all zero
+
+        Parameters
+        ----------
+        length: int
+            The number of matrices to build
+        """
         return cls(np.zeros((length, 4)))
 
     def append(self, v):
+        """ Append an item to the end of this array
+
+        Parameters
+        ----------
+        value: iterable
+            An iterable to be appended as-is to the end of this array
+        """
         self.resize((len(self) + 1, 4))
         self[-1] = v
 
     def extend(self, v):
+        """ Extend this array with the given items
+
+        Parameters
+        ----------
+        value: iterable
+            An iterable to be added to the end of this array
+        """
         self.resize((len(self) + len(v), 4))
         self[-len(v):] = v
 
     @classmethod
     def alignedRotations(cls, axisName, angles, degrees=False):
+        """ An alternate constructor to build a quaternion from a basis vector and angle
+
+        Arguments
+        ---------
+        axisName: str
+            The name of the axis to rotate around: x, y, or z
+        angles: iterable
+            The angles to rotate around the named axes
+        degrees: bool, optional
+            If true, then assume the angles are in degrees instead of radians
+            Defaults to False
+        """
         # where axisName is in 'xyz'
         angles = np.asarray(angles)
         if degrees:
@@ -127,6 +262,18 @@ class QuaternionArray(np.ndarray):
 
     @classmethod
     def axisAngle(cls, axes, angles, degrees=False):
+        """ An alternate constructor to build a quaternion from an axis and angle
+
+        Arguments
+        ---------
+        axes: Vector3Array
+            The axes for the axis angle
+        angles: iterable
+            An angle per axis
+        degrees: bool, optional
+            If true, then assume the angles are in degrees instead of radians
+            Defaults to False
+        """
         count = len(axes)
         if degrees:
             angles = np.deg2rad(angles)
@@ -139,6 +286,10 @@ class QuaternionArray(np.ndarray):
 
     @staticmethod
     def quatquatProduct(p, q):
+        """ A multiplication of two quaternions
+        This does absolutely no typechecking or size checking
+        You shouldn't be calling this directly
+        """
         # This assumes the arrays are shaped correctly
         prod = np.empty((max(p.shape[0], q.shape[0]), 4))
         prod[:, 3] = p[:, 3] * q[:, 3] - np.sum(p[:, :3] * q[:, :3], axis=1)
@@ -151,6 +302,10 @@ class QuaternionArray(np.ndarray):
 
     @staticmethod
     def vectorquatproduct(v, q):
+        """ A multiplication of a vector and a quaternion
+        This does absolutely no typechecking or size checking
+        You shouldn't be calling this directly
+        """
         # This assumes the arrays are shaped correctly
         qvec = q[:, :3]
         uv = np.cross(qvec, v)
@@ -160,6 +315,14 @@ class QuaternionArray(np.ndarray):
         return v + uv + uuv
 
     def asMatrixArray(self):
+        """ Convert the quaternion to a 3x3 matrix array
+
+        Returns
+        -------
+        Matrix3Array
+            The array of orientations
+        """
+
         from .matrixN import Matrix3Array
         x = self[:, 0]
         y = self[:, 1]
@@ -196,6 +359,22 @@ class QuaternionArray(np.ndarray):
         return mats
 
     def asEulerArray(self, order='xyz', degrees=False):
+        """ Convert the quaternion to an array of Euler rotations
+
+        Parameters
+        ----------
+        order: str, optional
+            The order in which the axis rotations are applied
+            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+            Defaults to 'xyz'
+        degrees: bool, optional
+            Whether the angles are given in degrees or radians. Defaults to False (radians)
+
+        Returns
+        -------
+        EulerArray:
+            The converted orientation Array
+        """
         m = self.asMatrixArray()
         return m.asEulerArray(order=order, degrees=degrees)
 
@@ -213,6 +392,22 @@ class QuaternionArray(np.ndarray):
 
     @staticmethod
     def lookAts(looks, ups, axis="xy"):
+        """ An alternate constructor to look along the look-vectors, oriented to the up-vectors
+
+        Parameters
+        ----------
+        looks: Vector3Array
+            The pointing directions of the look axis
+        ups: Vector3Array
+            The pointing directions of the up axis
+        axis: string
+            The axes to align to the look and up vectors (ie: 'xy', 'yz', '-zy', 'x-z')
+
+        Returns
+        -------
+        QuaternionArray:
+            The looking matrices
+        """
         from .matrixN import MatrixNArray
         mats = MatrixNArray.lookAts(looks, ups, axis=axis)
         return mats.asQuaternionArray()

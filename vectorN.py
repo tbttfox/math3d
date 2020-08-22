@@ -33,11 +33,11 @@ class VectorN(np.ndarray):
             return ret
         return ret.view(typ)
 
-    def length_squared(self):
+    def lengthSquared(self):
         return (self * self).sum()
 
     def length(self):
-        return np.sqrt(self.length_squared())
+        return np.sqrt(self.lengthSquared())
 
     @classmethod
     def zeros(cls):

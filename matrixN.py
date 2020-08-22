@@ -3,48 +3,73 @@ from vectorN import VectorN, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
 
 
 class MatrixN(np.ndarray):
-    def __new__(cls, input_array=None):
-        if input_array is None:
+    """ An NxN matrix which can represent rotations and transforms
+
+    Parameters
+    ----------
+    inputArray : iterable, optional
+        The input value to create the euler array. It must be an iterable that can fill the
+        matrix. If not given, defaults to the identity matrix.
+    """
+
+    def __new__(cls, inputArray=None):
+        if inputArray is None:
             ary = np.eye(cls.N)
         else:
-            ary = np.asarray(input_array)
+            ary = np.asarray(inputArray)
         if ary.size != cls.N ** 2:
             raise ValueError(
                 "Initializer for Matrix{0} must be of length {0}".format(cls.N)
             )
         return ary.view(cls)
 
-    def getReturnType(self, shape):
+    @classmethod
+    def _getReturnType(cls, shape):
+        """ Get the type for any return values based on the shape of the return value
+        This is mainly for internal use
+
+        Parameters
+        ----------
+        shape: tuple
+            The shape of the output
+
+        Returns
+        -------
+        type
+            The type that the output should have
+        """
         if not shape:
             return None
         if len(shape) == 1:
-            if shape[0] == self.N:
-                return type(self)
+            if shape[0] == cls.N:
+                return type(cls)
         elif len(shape) == 2:
             # This could happen with fancy indexing
-            if shape[-1] == self.N:
-                return self.arrayType
+            if shape[-1] == cls.N:
+                return cls.arrayType
 
         return np.ndarray
 
     def __getitem__(self, idx):
         ret = super(MatrixN, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
+        typ = self._getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
 
-    def length_squared(self):
-        return (self * self).sum()
+    def toMatrixSize(self, n):
+        """ Return a square matrix of a given size based on the current matrix.
+        If the size is smaller, keep the upper left square of the matrix
+        If the size is bigger, the new entries will the same as the identity matrix
 
-    def length(self):
-        return np.sqrt(self.length_squared())
+        Parameters
+        ----------
+        n: int
+            The new size of the matrix
+        """
 
-    def toMatrixSize(self, n, copy=False):
         if n == self.N:
-            if copy:
-                return self.copy()
-            return self
+            return self.copy()
         typ = MATRIX_BY_SIZE[n]
         ret = typ()
         n = min(n, self.N)
@@ -52,15 +77,29 @@ class MatrixN(np.ndarray):
         return ret
 
     def asEuler(self, order="xyz", degrees=False):
+        """ Convert the upper left 3x3 of this matrix to an Euler rotation
+
+        Parameters
+        ----------
+        order: str, optional
+            The order in which the axis rotations are applied
+            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+            Defaults to 'xyz'
+        degrees: bool, optional
+            Whether the angles are given in degrees or radians. Defaults to False (radians)
+        """
         return self[None, ...].asEulerArray(order=order, degrees=degrees)[0]
 
     def asQuaternion(self):
+        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation"""
         return self[None, ...].asQuaternionArray()[0]
 
     def inverse(self):
+        """ Return the inverse of the current matrix """
         return np.linalg.inv(self)
 
     def invert(self):
+        """ Invert the current matrix in-place """
         self[:] = np.linalg.inv(self)
 
     def __mul__(self, other):
@@ -92,29 +131,90 @@ class MatrixN(np.ndarray):
 
     @staticmethod
     def lookAt(look, up, axis="xy"):
+        """ Alternate constructor to create a 3x3 matrix looking at a point
+        and twisted with the given up value
+        Think of the 3x3 matrix resting at origin
+
+        Parameters
+        ----------
+        look: iterable
+            A length-3 vector that the primary axis will be pointed at
+        up: iterable
+            A length-3 vector that the secondary axis will be pointed at
+        axis: str, optional
+            Define the primary and secondary axes. Must be one of these options
+            ['xy', 'xz', 'yx', 'yz', 'zx', 'zy']
+        """
         return MatrixNArray.lookAts([look], [up], axis=axis)[0]
 
     def changeUpAxis(self, oldUpAxis, newUpAxis):
+        """ Rotate the matrix so that the newUpAxis points where the oldUpAxis was
+
+        Parameters
+        ----------
+        oldUpAxis: int
+            The index of the old axis
+        newUpAxis: int
+            The index of the new axis
+        """
         return self[None, ...].changeUpAxis(oldUpAxis, newUpAxis)[0]
 
     def decompose(self):
+        """ Decompose the matrix into Translation, Rotation, and Scale
+
+        Returns
+        -------
+        Vector3:
+            The translation
+        Quaternion:
+            The Rotation
+        Vector3:
+            The Scale
+        """
         t, r, s = self[None, ...].decompose()
         return t[0], r[0], s[0]
 
     def asScale(self):
+        """ Return the scale part of the matrix
+
+        Returns
+        -------
+        Vector3:
+            The scale part of the matrix
+        """
         return self[None, ...].asScaleArray()[0]
 
     def asTranslation(self):
+        """ Return the translation part of the matrix
+
+        Returns
+        -------
+        Vector3:
+            The translation part of the matrix
+        """
         return self[None, ...].asTranslationArray()[0]
 
 
 class MatrixNArray(np.ndarray):
-    def __new__(cls, input_array):
-        ary = np.asarray(input_array)
+    def __new__(cls, inputArray):
+        ary = np.asarray(inputArray)
         ary = ary.reshape((-1, cls.N, cls.N))
         return ary.view(cls)
 
-    def getReturnType(self, shape):
+    def _getReturnType(self, shape):
+        """ Get the type for any return values based on the shape of the return value
+        This is mainly for internal use
+
+        Parameters
+        ----------
+        shape: tuple
+            The shape of the output
+
+        Returns
+        -------
+        type
+            The type that the output should have
+        """
         if not shape:
             return None
         if len(shape) == 3:
@@ -134,58 +234,130 @@ class MatrixNArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(MatrixNArray, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
+        typ = self._getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
 
     @classmethod
     def zeros(cls, length):
+        """ Alternate constructor to build an array of matrices that are all zero
+
+        Parameters
+        ----------
+        length: int
+            The number of matrices to build
+        """
         return cls(np.zeros((length, cls.N, cls.N)))
 
     @classmethod
     def ones(cls, length):
+        """ Alternate constructor to build an array of matrices that are all one
+
+        Parameters
+        ----------
+        length: int
+            The number of matrices to build
+        """
         return cls(np.ones((length, cls.N, cls.N)))
 
     @classmethod
     def full(cls, length, value):
+        """ Alternate constructor to build an array of matrices that are all a given value
+
+        Parameters
+        ----------
+        length: int
+            The number of matrices to build
+        value: float
+            The value to fill the arrays with
+        """
         return cls(np.full((length, cls.N, cls.N), value))
 
     @classmethod
     def eye(cls, length):
+        """ Alternate constructor to build an array of matrices that are all the identity matrix
+
+        Parameters
+        ----------
+        length: int
+            The number of matrices to build
+        """
         ret = cls.zeros(length)
         ret[:] = np.eye(cls.N)
         return ret
 
-    def toMatrixSize(self, n, copy=False):
+    def toMatrixSize(self, n):
+        """ Return a an array of square matrixes of a given size based on the current matrix.
+        If the size is smaller, keep the upper left square of the matrix
+        If the size is bigger, the new entries will the same as the identity matrix
+
+        Parameters
+        ----------
+        n: int
+            The new size of the matrix
+        """
         if n == self.N:
-            if copy:
-                return self.copy()
-            return self
+            return self.copy()
         typ = MATRIX_ARRAY_BY_SIZE[n]
         ret = typ.eye(len(self))
         n = min(n, self.N)
         ret[:, :n] = self[:, :n]
         return ret
 
-    def append(self, v):
+    def append(self, value):
+        """ Append an item to the end of this array
+
+        Parameters
+        ----------
+        value: iterable
+            An iterable to be appended as-is to the end of this array
+        """
         self.resize((len(self) + 1, self.N, self.N))
-        self[-1] = v
+        self[-1] = value
 
-    def extend(self, v):
-        self.resize((len(self) + len(v), self.N, self.N))
-        self[-len(v) :] = v
+    def extend(self, value):
+        """ Extend this array with the given items
 
-    def setLength(self, length):
-        self.resize((length, self.N, self.N))
+        Parameters
+        ----------
+        value: iterable
+            An iterable to be added to the end of this array
+        """
+        self.resize((len(self) + len(value), self.N, self.N))
+        self[-len(value):] = value
 
     def inverse(self):
+        """ Return the inverse of the current matrixes
+
+        Returns
+        -------
+        MatrixNArray
+            The inverted matrices
+        """
         return np.linalg.inv(self)
 
     def invert(self):
+        """ Invert the matrices in-place """
         self[:] = np.linalg.inv(self)
 
     def asEulerArray(self, order="xyz", degrees=False):
+        """ Convert the upper left 3x3 of these matrixes to Euler rotations
+
+        Parameters
+        ----------
+        order: str, optional
+            The order in which the axis rotations are applied
+            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+            Defaults to 'xyz'
+        degrees: bool, optional
+            Whether the angles are given in degrees or radians. Defaults to False (radians)
+
+        Returns
+        -------
+        EulerArray
+            The array of orientations
+        """
         from .euler import EulerArray
 
         # Taken almost directly from the scipy transforms rotations code
@@ -302,6 +474,14 @@ class MatrixNArray(np.ndarray):
         return EulerArray(angles)
 
     def asQuaternionArray(self):
+        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
+
+        Returns
+        -------
+        EulerArray
+            The array of orientations
+        """
+
         from .quaternion import QuaternionArray
 
         if self.ndim == 2:
@@ -341,10 +521,20 @@ class MatrixNArray(np.ndarray):
     def lookAts(looks, ups, axis="xy"):
         """ Set the upper 3x3 of these matrices to look along the look-vectors, oriented to the up-vectors
 
-        Args:
-            looks(Vector3Array): The pointing directions of the look axis
-            ups(Vector3Array): The pointing directions of the up axis
-            axis(string): The axes to align to the look and up vectors (ie: 'xy', 'yz', '-zy', 'x-z')
+        Parameters
+        ----------
+        looks: Vector3Array
+            The pointing directions of the look axis
+        ups: Vector3Array
+            The pointing directions of the up axis
+        axis: string
+            The axes to align to the look and up vectors (ie: 'xy', 'yz', '-zy', 'x-z')
+
+        Returns
+        -------
+        Matrix3Array:
+            The looking matrices
+
         """
         looks = VECTOR_ARRAY_BY_SIZE[3](looks)
         ups = VECTOR_ARRAY_BY_SIZE[3](ups)
@@ -380,7 +570,21 @@ class MatrixNArray(np.ndarray):
         return ret
 
     def changeUpAxis(self, oldUpAxis, newUpAxis):
-        reo = [0, 1, 2, 3]
+        """ Rotate each of the matrixes so that the newUpAxis points where the oldUpAxis was
+
+        Parameters
+        ----------
+        oldUpAxis: int
+            The index of the old axis
+        newUpAxis: int
+            The index of the new axis
+
+        Returns
+        -------
+        Matrix3Array:
+            The rotated matrices
+        """
+        reo = range(self.N)
         reo[oldUpAxis], reo[newUpAxis] = reo[newUpAxis], reo[oldUpAxis]
 
         ret = self.copy()
@@ -391,14 +595,41 @@ class MatrixNArray(np.ndarray):
         return ret
 
     def asScaleArray(self):
+        """ Return the scale part of the matrixes
+        
+        Returns
+        -------
+        Vector3Array:
+            The scale part of the matrixes
+        """
+
         scale = self[:, :3, :3]
         scale = np.sqrt(np.einsum("...ij,...ij->...i", scale, scale))
         return VECTOR_ARRAY_BY_SIZE[3](scale)
 
     def asTranslationArray(self):
+        """ Return the translation part of the matrixes
+
+        Returns
+        -------
+        Vector3Array:
+            The translation part of the matrixes
+        """
         return self[:, 3, :3]
 
     def decompose(self):
+        """ Decompose the matrix into Translation, Rotation, and Scale
+
+        Returns
+        -------
+        Vector3Array:
+            The translation array
+        QuaternionArray:
+            The Rotation array
+        Vector3Array:
+            The Scale array
+        """
+
         tran = self.asTranslationArray()
         rot = self.asQuaternionArray()
         scale = self.asScaleArray()
