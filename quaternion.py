@@ -49,7 +49,7 @@ class Quaternion(np.ndarray):
             return ret
         return ret.view(typ)
 
-    def length_squared(self):
+    def lengthSquared(self):
         """ Return the squared length of the quaternion
 
         Returns
@@ -67,7 +67,7 @@ class Quaternion(np.ndarray):
         float:
             The length of the quaternion
         """
-        return np.sqrt(self.length_squared())
+        return np.sqrt(self.lengthSquared())
 
     def __mul__(self, other):
         if isinstance(other, Quaternion):
