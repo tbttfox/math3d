@@ -379,8 +379,8 @@ glo = globals()
 for n in [2, 3, 4]:
     name = "Vector{0}".format(n)
     aname = "Vector{0}Array".format(n)
-    v = type(name, VectorN, {"N": n})
-    va = type(aname, VectorNArray, {"N": n})
+    v = type(name, (VectorN,), {"N": n})
+    va = type(aname, (VectorNArray,), {"N": n})
     v.arrayType = va
     va.itemType = v
     glo[name] = v

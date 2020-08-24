@@ -643,8 +643,8 @@ glo = globals()
 for n in [2, 3, 4]:
     name = "Matrix{0}".format(n)
     aname = "Matrix{0}Array".format(n)
-    m = type(name, MatrixN, {"N": n})
-    ma = type(aname, MatrixNArray, {"N": n})
+    m = type(name, (MatrixN,), {"N": n})
+    ma = type(aname, (MatrixNArray,), {"N": n})
     m.arrayType = ma
     ma.itemType = m
     m.vectorType = VECTOR_BY_SIZE[n]
