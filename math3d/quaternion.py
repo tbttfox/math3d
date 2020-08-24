@@ -7,7 +7,7 @@ class Quaternion(np.ndarray):
             ary = np.zeros(4)
             ary[3] = 1
         else:
-            ary = np.asarray(input_array)
+            ary = np.asarray(input_array, dtype=float)
         if ary.size != 4:
             raise ValueError(
                 "Initializer for Vector{0} must be of length {0}".format(4)
@@ -38,7 +38,7 @@ class Quaternion(np.ndarray):
         elif len(shape) == 2:
             # This could happen with fancy indexing
             if shape[-1] == 4:
-                return cls.arrayType
+                return QuaternionArray
 
         return np.ndarray
 
@@ -133,7 +133,7 @@ class Quaternion(np.ndarray):
 
 class QuaternionArray(np.ndarray):
     def __new__(cls, input_array):
-        ary = np.asarray(input_array)
+        ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, 4))
         return ary.view(cls)
 
@@ -251,7 +251,7 @@ class QuaternionArray(np.ndarray):
             Defaults to False
         """
         # where axisName is in 'xyz'
-        angles = np.asarray(angles)
+        angles = np.asarray(angles, dtype=float)
         if degrees:
             angles = np.deg2rad(angles)
         ind = 'xyz'.index(axisName.lower())
@@ -411,4 +411,6 @@ class QuaternionArray(np.ndarray):
         from .matrixN import MatrixNArray
         mats = MatrixNArray.lookAts(looks, ups, axis=axis)
         return mats.asQuaternionArray()
+
+
 

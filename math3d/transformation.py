@@ -12,12 +12,18 @@ class Transformation(np.ndarray):
             ary[:3] = 1  # Scale
             ary[6] = 1  # Quat.w
         else:
-            ary = np.asarray(input_array)
+            ary = np.asarray(input_array, dtype=float)
         if ary.size != 10:
             raise ValueError(
                 "Initializer for Vector{0} must be of length {0}".format(10)
             )
         return ary.view(cls)
+
+    def __repr__(self):
+        return super(Transformation, self).__repr__()
+
+    def __str__(self):
+        return "[s:{0}, q:{1}, t:{2}]".format(self.scale, self.rotation, self.translation)
 
     @property
     def translation(self):
@@ -43,21 +49,29 @@ class Transformation(np.ndarray):
     def scale(self, other):
         self[:3] = other
 
-    def getReturnType(self, shape):
+    @classmethod
+    def _getReturnType(cls, shape):
         if not shape:
             return None
         if len(shape) == 1:
             if shape[0] == 10:
-                return type(self)
+                return cls
         elif len(shape) == 2:
             # This could happen with fancy indexing
             if shape[-1] == 10:
-                return self.arrayType
+                return TransformationArray
 
         return np.ndarray
 
+    def __getitem__(self, idx):
+        ret = super(Transformation, self).__getitem__(idx)
+        typ = self._getReturnType(ret.shape)
+        if typ is None:
+            return ret
+        return ret.view(typ)
+
     def asMatrix(self):
-        ret = Matrix4.eye()
+        ret = Matrix4()
         ret[3, :3] = self.translation
         rot = np.diag(self.scale) * self.rotation.asMatrix()
         ret[:3, :3] = rot
@@ -66,21 +80,58 @@ class Transformation(np.ndarray):
 
 class TransformationArray(np.ndarray):
     def __new__(cls, input_array=None):
-        ary = np.asarray(input_array)
+        ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, 10))
         return ary.view(cls)
 
-    def getReturnType(self, shape):
+    @classmethod
+    def eye(cls, length):
+        """ Alternate constructor to build an array of transformations that are all the identity
+
+        Parameters
+        ----------
+        length: int
+            The number of transformations to build
+        """
+        ret = np.zeros((length, 10), dtype=float)
+        ret[:, :3] = 1.0
+        ret[:, 6] = 1.0
+        return cls(ret)
+
+    def __repr__(self):
+        return super(TransformationArray, self).__repr__()
+
+    def __str__(self):
+        if len(self) > 100:
+            first3 = [str(i) for i in self[:3]]
+            last3 = [str(i) for i in self[-3:]]
+            lines = first3 + ["..."] + last3
+        else:
+            lines = [str(i) for i in self]
+        lines = [" " + i for i in lines]
+        lines[0] = "[" + lines[0][1:]
+        lines[-1] = lines[-1] + "]"
+        return "\n".join(lines)
+
+    @classmethod
+    def _getReturnType(cls, shape):
         if not shape:
             return None
         if len(shape) == 1:
             if shape[0] == 10:
-                return self.itemType
+                return Transformation
         elif len(shape) == 2:
+            # This could happen with fancy indexing
             if shape[-1] == 10:
-                return type(self)
-
+                return cls
         return np.ndarray
+
+    def __getitem__(self, idx):
+        ret = super(TransformationArray, self).__getitem__(idx)
+        typ = self._getReturnType(ret.shape)
+        if typ is None:
+            return ret
+        return ret.view(typ)
 
     @property
     def translation(self):

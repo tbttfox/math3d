@@ -278,7 +278,7 @@ class EulerArray(np.ndarray):
         value: iterable
             A multiple-of-length-3 iterable to be appended to the end of this array
         """
-        value = np.asarray(value)
+        value = np.asarray(value, dtype=float)
         if isinstance(value, EulerArray):
             if self.degrees and not value.degrees:
                 value = np.rad2deg(value)

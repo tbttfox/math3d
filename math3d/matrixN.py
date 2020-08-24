@@ -16,7 +16,7 @@ class MatrixN(np.ndarray):
         if inputArray is None:
             ary = np.eye(cls.N)
         else:
-            ary = np.asarray(inputArray)
+            ary = np.asarray(inputArray, dtype=float)
         if ary.size != cls.N ** 2:
             raise ValueError(
                 "Initializer for Matrix{0} must be of length {0}".format(cls.N)
@@ -42,12 +42,15 @@ class MatrixN(np.ndarray):
             return None
         if len(shape) == 1:
             if shape[0] == cls.N:
-                return type(cls)
+                return cls.vectorType
         elif len(shape) == 2:
-            # This could happen with fancy indexing
+            if shape == (cls.N, cls.N):
+                return cls
             if shape[-1] == cls.N:
+                return cls.vectorArrayType
+        elif len(shape) == 3:
+            if shape[:-2] == (cls.N, cls.N):
                 return cls.arrayType
-
         return np.ndarray
 
     def __getitem__(self, idx):
@@ -197,11 +200,12 @@ class MatrixN(np.ndarray):
 
 class MatrixNArray(np.ndarray):
     def __new__(cls, inputArray):
-        ary = np.asarray(inputArray)
+        ary = np.asarray(inputArray, dtype=float)
         ary = ary.reshape((-1, cls.N, cls.N))
         return ary.view(cls)
 
-    def _getReturnType(self, shape):
+    @classmethod
+    def _getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -218,18 +222,16 @@ class MatrixNArray(np.ndarray):
         if not shape:
             return None
         if len(shape) == 3:
-            if shape[1] == self.N and shape[2] == self.N:
-                return type(self)
-            return np.ndarray
+            if shape[-2:] == (cls.N, cls.N):
+                return cls
         elif len(shape) == 2:
-            if shape[1] == self.N:
-                if shape[0] == self.N:
-                    return type(self)
-                else:
-                    return self.vectorType
+            if shape == (cls.N, cls.N):
+                return cls.itemType
+            elif shape[1] == cls.N:
+                return cls.vectorArrayType
         elif len(shape) == 1:
-            if shape[0] == self.N:
-                return self.vectorType
+            if shape[0] == cls.N:
+                return cls.vectorType
         return np.ndarray
 
     def __getitem__(self, idx):
@@ -649,6 +651,8 @@ for n in [2, 3, 4]:
     ma.itemType = m
     m.vectorType = VECTOR_BY_SIZE[n]
     ma.vectorType = VECTOR_BY_SIZE[n]
+    m.vectorArrayType = VECTOR_ARRAY_BY_SIZE[n]
+    ma.vectorArrayType = VECTOR_ARRAY_BY_SIZE[n]
 
     glo[name] = m
     glo[aname] = ma

@@ -1,6 +1,6 @@
-from .matrixN import Matrix3, Matrix4
-from .transformation import Transformation
-from .vectorN import Vector3, Vector4
-from .quaternion import Quaternion
-from .euler import Euler
+from .matrixN import Matrix3, Matrix4, Matrix3Array, Matrix4Array
+from .transformation import Transformation, TransformationArray
+from .vectorN import Vector3, Vector4, Vector3Array, Vector4Array
+from .quaternion import Quaternion, QuaternionArray
+from .euler import Euler, EulerArray
 
