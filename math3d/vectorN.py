@@ -47,6 +47,16 @@ class VectorN(np.ndarray):
             return ret
         return ret.view(typ)
 
+    def toArray(self):
+        """ Return the array type of this object
+
+        Returns
+        -------
+        ArrayType:
+            The current object up-cast into a length-1 array
+        """
+        return self[None, ...]
+
     def lengthSquared(self):
         """ Return the squared length of each vector
 
@@ -128,7 +138,7 @@ class VectorN(np.ndarray):
                 raise TypeError(
                     "Cannot compute the dot of vectors with different sizes"
                 )
-            return np.einsum("ij, ij -> i", self[None, ...], other)
+            return np.einsum("ij, ij -> i", self.toArray(), other)
 
         from .matrixN import MatrixN, MatrixNArray
 
@@ -142,20 +152,60 @@ class VectorN(np.ndarray):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
             exp = self.toVectorSize(other.N)
-            ret = np.einsum("ij, ijk -> ik", exp[None, ...], other)
+            ret = np.einsum("ij, ijk -> ik", exp.toArray(), other)
             return ret.toVectorSize(self.N)
 
         from .quaternion import Quaternion, QuaternionArray
 
         if isinstance(other, Quaternion):
             exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectoquatproduct(exp[None, ...], other[None, ...])
+            ret = QuaternionArray.vectoquatproduct(exp.toArray(), other.toArray())
             return ret[0].toVectorSize(self.N)
 
         elif isinstance(other, QuaternionArray):
             exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectoquatproduct(exp[None, ...], other)
+            ret = QuaternionArray.vectoquatproduct(exp.toArray(), other)
             return ret.toVectorSize(self.N)
+
+    @classmethod
+    def planeNormal(cls, center, pos1, pos2, normalize=False):
+        """ Convenience constructor to build a plane normal based off 3 points
+        Simply cross the "spoke" vectors from the centers
+            (pos1-center) x (pos2-center)
+
+        The cross product only works in 3d, therefore all calculations will be done
+        at that length
+
+        Parameters
+        ----------
+        center: Vector3
+            The "central" point
+        pos1: Vector3
+            The first axis point
+        pos2: vector3
+            The second axis point
+        """
+        ret = VectorNArray.planeNormals(
+            center[None, ...], pos1[None, ...], pos2[None, ...], normalize=normalize
+        )
+        return ret[0]
+
+    def distance(self, other):
+        """ Get the per-point distances to another set of vectors
+
+        Parameters
+        ----------
+        other: VectorN, VectorNArray
+            The Point or Points to get distances to
+
+        Returns
+        -------
+        np.ndarray
+            The computed distances
+        """
+        if isinstance(other, VectorNArray):
+            return (self.toArray() - other).length()
+        return (self - other).length()
 
 
 class VectorNArray(np.ndarray):
@@ -302,7 +352,7 @@ class VectorNArray(np.ndarray):
             An iterable to be added to the end of this array
         """
         self.resize((len(self) + len(v), self.N))
-        self[-len(v):] = v
+        self[-len(v) :] = v
 
     def cross(self, other):
         """ Take Cross product with another array of vector
@@ -348,7 +398,7 @@ class VectorNArray(np.ndarray):
 
         if isinstance(other, Quaternion):
             exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectoquatproduct(exp, other[None, ...])
+            ret = QuaternionArray.vectoquatproduct(exp, other.toArray())
             return ret.toVectorSize(self.N)
 
         elif isinstance(other, QuaternionArray):
@@ -371,6 +421,63 @@ class VectorNArray(np.ndarray):
         """
         dots = self.normal() * other.normal()
         return np.acos(dots)
+
+    @classmethod
+    def planeNormals(cls, centers, pos1, pos2, normalize=False):
+        """ Convenience constructor to build plane normals based off 3 sets of points
+        Simply cross the "spoke" vectors from the centers
+            (pos1-centers) x (pos2-centers)
+
+        The cross product only works in 3d, therefore all calculations will be done
+        at that length
+
+        Parameters
+        ----------
+        centers: Vector3Array
+            The "central" set of points
+        pos1: Vector3Array
+            The array of first axis points
+        pos2: vector3Array
+            The array of second axis points
+        """
+        centers = centers.toVectorSize(3)
+        pos1 = pos1.toVectorSize(3)
+        pos2 = pos2.toVectorSize(3)
+
+        vec1 = (pos1 - centers).normal()
+        vec2 = (pos2 - centers).normal()
+
+        ret = np.cross(vec1, vec2)
+        if normalize:
+            ret.normalize()
+        return ret
+
+    def adjacentLengths(self):
+        """ Return the length of each adjacent pair if vertices
+
+        Returns
+        -------
+        np.ndarray
+            The length of each adjacent pair if vertices
+        """
+        return (self[1:] - self[:-1]).length()
+
+    def distances(self, other):
+        """ Get the per-point distances to another set of vectors
+
+        Parameters
+        ----------
+        other: VectorN, VectorNArray
+            The Point or Point to get distances to
+
+        Returns
+        -------
+        np.ndarray
+            The computed distances
+        """
+        if other.ndim == 1:
+            other = other[None, ...]
+        return (self - other).length()
 
 
 # Register the default sizes of array dynamically

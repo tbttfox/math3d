@@ -49,6 +49,16 @@ class Quaternion(np.ndarray):
             return ret
         return ret.view(typ)
 
+    def toArray(self):
+        """ Return the array type of this object
+
+        Returns
+        -------
+        ArrayType:
+            The current object up-cast into a length-1 array
+        """
+        return self[None, ...]
+
     def lengthSquared(self):
         """ Return the squared length of the quaternion
 

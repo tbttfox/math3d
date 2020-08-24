@@ -60,6 +60,16 @@ class MatrixN(np.ndarray):
             return ret
         return ret.view(typ)
 
+    def toArray(self):
+        """ Return the array type of this object
+
+        Returns
+        -------
+        ArrayType:
+            The current object up-cast into a length-1 array
+        """
+        return self[None, ...]
+
     def toMatrixSize(self, n):
         """ Return a square matrix of a given size based on the current matrix.
         If the size is smaller, keep the upper left square of the matrix
@@ -91,11 +101,11 @@ class MatrixN(np.ndarray):
         degrees: bool, optional
             Whether the angles are given in degrees or radians. Defaults to False (radians)
         """
-        return self[None, ...].asEulerArray(order=order, degrees=degrees)[0]
+        return self.toArray().asEulerArray(order=order, degrees=degrees)[0]
 
     def asQuaternion(self):
         """ Convert the upper left 3x3 of this matrix to an Quaternion rotation"""
-        return self[None, ...].asQuaternionArray()[0]
+        return self.toArray().asQuaternionArray()[0]
 
     def inverse(self):
         """ Return the inverse of the current matrix """
@@ -160,7 +170,7 @@ class MatrixN(np.ndarray):
         newUpAxis: int
             The index of the new axis
         """
-        return self[None, ...].changeUpAxis(oldUpAxis, newUpAxis)[0]
+        return self.toArray().changeUpAxis(oldUpAxis, newUpAxis)[0]
 
     def decompose(self):
         """ Decompose the matrix into Translation, Rotation, and Scale
@@ -174,7 +184,7 @@ class MatrixN(np.ndarray):
         Vector3:
             The Scale
         """
-        t, r, s = self[None, ...].decompose()
+        t, r, s = self.toArray().decompose()
         return t[0], r[0], s[0]
 
     def asScale(self):
@@ -185,7 +195,7 @@ class MatrixN(np.ndarray):
         Vector3:
             The scale part of the matrix
         """
-        return self[None, ...].asScaleArray()[0]
+        return self.toArray().asScaleArray()[0]
 
     def asTranslation(self):
         """ Return the translation part of the matrix
@@ -195,7 +205,7 @@ class MatrixN(np.ndarray):
         Vector3:
             The translation part of the matrix
         """
-        return self[None, ...].asTranslationArray()[0]
+        return self.toArray().asTranslationArray()[0]
 
 
 class MatrixNArray(np.ndarray):
@@ -375,7 +385,7 @@ class MatrixNArray(np.ndarray):
 
         order = order.lower()
         if self.ndim == 2:
-            self = self[None, ...]
+            self = self.toArray()
 
         self = self.toMatrixSize(3)
         num_rotations = self.shape[0]
@@ -486,8 +496,6 @@ class MatrixNArray(np.ndarray):
 
         from .quaternion import QuaternionArray
 
-        if self.ndim == 2:
-            self = self[None, ...]
         self = self.toMatrixSize(3)
         num_rotations = self.shape[0]
 

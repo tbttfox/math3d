@@ -2,6 +2,7 @@ import numpy as np
 from .vectorN import Vector3, Vector3Array
 from .quaternion import Quaternion, QuaternionArray
 from .matrixN import Matrix4, Matrix4Array, Matrix3Array
+from .euler import Euler, EulerArray
 
 
 class Transformation(np.ndarray):
@@ -23,7 +24,9 @@ class Transformation(np.ndarray):
         return super(Transformation, self).__repr__()
 
     def __str__(self):
-        return "[s:{0}, q:{1}, t:{2}]".format(self.scale, self.rotation, self.translation)
+        return "[s:{0}, q:{1}, t:{2}]".format(
+            self.scale, self.rotation, self.translation
+        )
 
     @property
     def translation(self):
@@ -98,6 +101,80 @@ class TransformationArray(np.ndarray):
         ret[:, 6] = 1.0
         return cls(ret)
 
+    @classmethod
+    def partCheck(cls, translation=None, rotation=None, scale=None):
+        if translation is not None:
+            translation = np.asarray(translation)
+            if translation.ndim == 1:
+                translation = translation[None, ...]
+            if translation.shape[-1] != 3:
+                raise ValueError("Provided translation is not 3d")
+
+        if scale is not None:
+            scale = np.asarray(scale)
+            if scale.ndim == 1:
+                scale = scale[None, ...]
+            if scale.shape[-1] != 3:
+                raise ValueError("Provided scale is not 3d")
+
+        if rotation is not None:
+            rotation = np.asarray(rotation)
+            if isinstance(rotation, Euler):
+                rotation = rotation.asQuaternion()[None, ...]
+            elif isinstance(rotation, EulerArray):
+                rotation = rotation.asQuaternionArray()
+            if rotation.ndim == 1:
+                rotation = rotation[None, ...]
+            if rotation.shape[-1] != 4:
+                raise ValueError(
+                    "Provided rotation could not be converted to quaternions"
+                )
+
+        return translation, rotation, scale
+
+    @classmethod
+    def fromParts(cls, translation=None, rotation=None, scale=None):
+        translation, rotation, scale = cls.partCheck(
+            translation=translation, rotation=rotation, scale=scale
+        )
+
+        count = [len(i) for i in (translation, rotation, scale) if i is not None]
+        if not count:
+            raise ValueError("Nothing passed to the .fromParts constructor")
+        count = sorted(set(count))
+        if len(count) == 2:
+            if count[0] != 1:
+                raise ValueError(
+                    "Parts passed have different lengths, and cannot be broadcast"
+                )
+        elif len(count) != 1:
+            raise ValueError(
+                "Parts passed have different lengths, and cannot be broadcast together"
+            )
+        count = count[-1]
+
+        ret = cls.eye(count)
+        if translation is not None:
+            ret.translation = translation
+        if scale is not None:
+            ret.scale = scale
+        if rotation is not None:
+            ret.rotation = ret.rotation
+        return ret
+
+    def copy(self, translation=None, rotation=None, scale=None):
+        ret = super(TransformationArray, self).copy()
+        translation, rotation, scale = self.partCheck(
+            translation=translation, rotation=rotation, scale=scale
+        )
+        if translation is not None:
+            ret.translation = translation
+        if scale is not None:
+            ret.scale = scale
+        if rotation is not None:
+            ret.rotation = ret.rotation
+        return ret
+
     def __repr__(self):
         return super(TransformationArray, self).__repr__()
 
@@ -132,6 +209,16 @@ class TransformationArray(np.ndarray):
         if typ is None:
             return ret
         return ret.view(typ)
+
+    def toArray(self):
+        """ Return the array type of this object
+
+        Returns
+        -------
+        ArrayType:
+            The current object up-cast into a length-1 array
+        """
+        return self[None, ...]
 
     @property
     def translation(self):
@@ -202,5 +289,3 @@ class TransformationArray(np.ndarray):
         out.rotation = rots
         out.translation = positions
         return out
-
-

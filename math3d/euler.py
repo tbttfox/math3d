@@ -37,6 +37,17 @@ class Euler(np.ndarray):
         self.order = getattr(obj, 'order', 'xyz')
         self._degrees = getattr(obj, 'degrees', False)
 
+    def toArray(self):
+        """ Return the array type of this object
+
+        Returns
+        -------
+        ArrayType:
+            The current object up-cast into a length-1 array
+        """
+        return self[None, ...]
+
+
     @property
     def degrees(self):
         return self._degrees
@@ -104,14 +115,14 @@ class Euler(np.ndarray):
 
     def asMatrix(self):
         """ Convert this euler object to a Matrix3
-        
+
         Returns
         -------
         Matrix3
             The current orientation as a matrix
 
         """
-        return self[None, ...].asMatrixArray()[0]
+        return self.toArray().asMatrixArray()[0]
 
     def asQuaternion(self):
         """ Convert this euler object to a Quaternion
@@ -121,7 +132,7 @@ class Euler(np.ndarray):
         Quaternion
             The current orientation as a quaternion
         """
-        return self[None, ...].asQuaternionArray()[0]
+        return self.toArray().asQuaternionArray()[0]
 
     def toNewOrder(self, order):
         """ Create a new euler object that represents the same orientation
@@ -132,7 +143,7 @@ class Euler(np.ndarray):
         Euler
             The same spatial orientation but with a different axis order
         """
-        return self[None, ...].toNewOrder(order)[0]
+        return self.toArray().toNewOrder(order)[0]
 
 
 class EulerArray(np.ndarray):
