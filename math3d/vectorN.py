@@ -207,6 +207,13 @@ class VectorN(np.ndarray):
             return (self.toArray() - other).length()
         return (self - other).length()
 
+    def lerp(self, other, percent):
+        sa = self
+        if isinstance(other, VectorNArray):
+            sa = self.asArray()
+        return ((other - sa) * percent) + sa
+
+
 
 class VectorNArray(np.ndarray):
     def __new__(cls, input_array):
@@ -478,6 +485,49 @@ class VectorNArray(np.ndarray):
         if other.ndim == 1:
             other = other[None, ...]
         return (self - other).length()
+
+    def lerp(self, other, percent):
+        if isinstance(other, VectorN):
+            other = other.asArray()
+        return ((other - sa) * percent) + sa
+
+    def parallelTransport(self, upv, inverse=False):
+        """ Take a normal and copy it along these ordered points.
+        When 3 adjacent points aren't in a straight line, rotate the normal
+        by the angle of those points
+
+        Parameters
+        ----------
+        upv: Vector3
+            The single starting up-vector
+        inverse: bool
+            Whether to invert the rotation for flipping
+
+        Returns
+        -------
+        VectorNArray:
+            An array of normals per point
+        """
+        from .quaternion import QuaternionArray
+
+        adjVecs = self[1:] - self[:-1]
+        # get the rotation and axis for all points except the first and last
+        binorms = adjVecs[1:].cross(adjVecs[:-1])
+        angles = adjVecs[1:].angle(adjVecs[:-1])
+        if inverse:
+            angles *= -1
+        quats = QuaternionArray.axisAngle(binorms, angles)
+
+        # The first upvector is the given value
+        out = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self))
+        out[0] = upv
+        for i in range(len(self) - 1):
+            out[i+1] = out[i] * quats[i]
+
+        # The last upvector is a repeat of the previous one
+        out[-1] = out[-2]
+        return out
+        
 
 
 # Register the default sizes of array dynamically

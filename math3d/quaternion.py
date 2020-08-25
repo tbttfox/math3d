@@ -140,6 +140,22 @@ class Quaternion(np.ndarray):
         mats = MatrixNArray.lookAts([look], [up], axis=axis)
         return mats.asQuaternionArray()[0]
 
+    @classmethod
+    def axisAngle(cls, axis, angle, degrees=False):
+        """ An alternate constructor to build a quaternion from an axis and angle
+
+        Arguments
+        ---------
+        axis: Vector3
+            The axes for the axis angle
+        angle: iterable
+            An angle per axis
+        degrees: bool, optional
+            If true, then assume the angles are in degrees instead of radians
+            Defaults to False
+        """
+        return QuaternionArray.axisAngle(axis[None, ...], [angle], degrees=degrees)[0]
+
 
 class QuaternionArray(np.ndarray):
     def __new__(cls, input_array):

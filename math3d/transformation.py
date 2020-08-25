@@ -289,3 +289,25 @@ class TransformationArray(np.ndarray):
         out.rotation = rots
         out.translation = positions
         return out
+
+    def mirrored(self, axis="x"):
+        """ Mirror the transformation along the given axis
+
+        Parameters
+        ----------
+        axis: str, optional
+            The axis to mirror along. Defaults to "x"
+
+        Returns
+        -------
+        Transformation:
+            The mirrored transformation
+        """
+        try:
+            index = "xyz".index(axis.lower())
+        except IndexError:
+            raise ValueError('Axis must be "x", "y", or "z"')
+
+        m = self.asMatrixArray()
+        m[:, :, index] *= -1
+        return m.asTransformArray()

@@ -645,6 +645,17 @@ class MatrixNArray(np.ndarray):
         scale = self.asScaleArray()
         return tran, rot, scale
 
+    def asTransformArray(self):
+        """ Decompose the matrixes into a transform array
+
+        Returns
+        -------
+        TransformArray:
+            The transform array
+        """
+        t, r, s = self.decompose()
+        return TransformArray.fromParts(translation=t, rotation=r, scale=s)
+
 
 # Register the default sizes of array dynamically
 MATRIX_BY_SIZE = {}
