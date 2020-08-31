@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import arrayCompat
 
 
 class Quaternion(np.ndarray):
@@ -80,18 +81,17 @@ class Quaternion(np.ndarray):
         return np.sqrt(self.lengthSquared())
 
     def __mul__(self, other):
+        other = np.asarray(other)
         if isinstance(other, Quaternion):
             return QuaternionArray.quatquatProduct(self[None, ...], other[None, ...])[0]
         elif isinstance(other, QuaternionArray):
             return QuaternionArray.quatquatProduct(self[None, ...], other)
 
         from .vectorN import VectorN, VectorNArray
-
-        if isinstance(other, VectorN, VectorNArray):
+        if isinstance(other, (VectorN, VectorNArray)):
             raise NotImplementedError(
                 "Vectors must always be on the left side of the multiplication"
             )
-
         return super(Quaternion, self).__mul__(other)
 
     def asMatrix(self):
@@ -102,7 +102,7 @@ class Quaternion(np.ndarray):
         Matrix3:
             The orientation as a matrix
         """
-        return self[None, :].asMatrixArray()[0]
+        return self[None, ...].asMatrixArray()[0]
 
     def asEuler(self, order="xyz", degrees=False):
         """ Convert the quaternion to an Euler rotation
@@ -121,7 +121,7 @@ class Quaternion(np.ndarray):
         Euler:
             The converted orientation
         """
-        return self[None, :].asEulerArray(order=order, degrees=degrees)[0]
+        return self[None, ...].asEulerArray(order=order, degrees=degrees)[0]
 
     @staticmethod
     def lookAt(look, up, axis="xy"):
@@ -140,8 +140,7 @@ class Quaternion(np.ndarray):
             ['xy', 'xz', 'yx', 'yz', 'zx', 'zy']
         """
         from .matrixN import MatrixNArray
-
-        mats = MatrixNArray.lookAts([look], [up], axis=axis)
+        mats = MatrixNArray.lookAts(look, up, axis=axis)
         return mats.asQuaternionArray()[0]
 
     @classmethod
@@ -158,6 +157,7 @@ class Quaternion(np.ndarray):
             If true, then assume the angles are in degrees instead of radians
             Defaults to False
         """
+        axis = np.asarray(axis)
         return QuaternionArray.axisAngle(axis[None, ...], [angle], degrees=degrees)[0]
 
 
@@ -207,7 +207,7 @@ class QuaternionArray(np.ndarray):
         np.ndarray:
             The squared lengths of the quaternions
         """
-        return np.einsum("ij,ij->i", self, self)
+        return np.einsum("...ij,...ij->...i", self, self)
 
     def length(self):
         """ Return the length of each quaternion
@@ -264,7 +264,7 @@ class QuaternionArray(np.ndarray):
             An iterable to be added to the end of this array
         """
         self.resize((len(self) + len(v), 4))
-        self[-len(v) :] = v
+        self[-len(v):] = v
 
     @classmethod
     def alignedRotations(cls, axisName, angles, degrees=False):
@@ -304,11 +304,13 @@ class QuaternionArray(np.ndarray):
             If true, then assume the angles are in degrees instead of radians
             Defaults to False
         """
-        count = len(axes)
+        axes = arrayCompat(axes)
+        angles = np.asarray(angles)
+
         if degrees:
             angles = np.deg2rad(angles)
         sins = np.sin(angles)
-        ret = cls.zeros(count)
+        ret = cls.zeros(len(axes))
 
         ret[:, :3] = axes * sins[:, None]
         ret[:, 3] = np.cos(angles)
@@ -317,10 +319,10 @@ class QuaternionArray(np.ndarray):
     @staticmethod
     def quatquatProduct(p, q):
         """ A multiplication of two quaternions
-        This does absolutely no typechecking or size checking
         You shouldn't be calling this directly
         """
         # This assumes the arrays are shaped correctly
+        p, q = arrayCompat(p, q)
         prod = np.empty((max(p.shape[0], q.shape[0]), 4))
         prod[:, 3] = p[:, 3] * q[:, 3] - np.sum(p[:, :3] * q[:, :3], axis=1)
         prod[:, :3] = (
@@ -332,11 +334,11 @@ class QuaternionArray(np.ndarray):
 
     @staticmethod
     def vectorquatproduct(v, q):
-        """ A multiplication of a vector and a quaternion
-        This does absolutely no typechecking or size checking
+        """ A multiplication of a vectorArray and a quaternionArray
         You shouldn't be calling this directly
         """
         # This assumes the arrays are shaped correctly
+        v, q = arrayCompat(v, q)
         qvec = q[:, :3]
         uv = np.cross(qvec, v)
         uuv = np.cross(qvec, uv)
@@ -410,14 +412,13 @@ class QuaternionArray(np.ndarray):
         return m.asEulerArray(order=order, degrees=degrees)
 
     def __mul__(self, other):
+        other = arrayCompat(other)
         if isinstance(other, QuaternionArray):
             return self.quatquatProduct(self, other)
-        elif isinstance(other, Quaternion):
-            return self.quatquatProduct(self, other[None, ...])
 
         from .vectorN import VectorN, VectorNArray
 
-        if isinstance(other, VectorN, VectorNArray):
+        if isinstance(other, (VectorN, VectorNArray)):
             raise NotImplementedError(
                 "Vectors must always be on the left side of the multiplication"
             )
@@ -460,7 +461,8 @@ class QuaternionArray(np.ndarray):
         np.ndarray:
             The calculated angles
         """
-        return 2 * np.acos(np.einsum("ij, ij -> i", self.toArray(), other.toArray()))
+        other = arrayCompat(other)
+        return 2 * np.acos(np.einsum("...ij, ...ij -> ...i", self, other))
 
     def slerp(self, other, tVal):
         """ Perform item-wise spherical linear interpolation at the given sample points
@@ -478,11 +480,11 @@ class QuaternionArray(np.ndarray):
         QuaternnionArray:
             A quaternion array of interpolands
         """
-        cosHalfAngle = np.einsum("ij, ij -> i", self.toArray(), other.toArray())
+        other = arrayCompat(other)
+        cosHalfAngle = np.einsum("...ij, ...ij -> ...i", self, other)
 
         # Handle floating point errors
-        zeroAngle = abs(cosHalfAngle) >= 1.0
-        cosHalfAngle[zeroAngle] = 1.0
+        cosHalfAngle[abs(cosHalfAngle) >= 1.0] = 1.0
 
         # Calculate the sin values
         halfAngle = np.acos(cosHalfAngle)

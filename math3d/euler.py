@@ -224,7 +224,7 @@ class EulerArray(np.ndarray):
             ret = np.deg2rad(self)
             ret._degrees = False
             return ret
-        return self
+        return self.copy()
 
     def toDegrees(self):
         """ Return a copy of this array as converted to degrees
@@ -238,7 +238,7 @@ class EulerArray(np.ndarray):
             ret = np.rad2deg(self)
             ret._degrees = True
             return ret
-        return self
+        return self.copy()
 
     def toNewOrder(self, order):
         """ Create a new EulerArray object that represents the same orientations
@@ -298,7 +298,7 @@ class EulerArray(np.ndarray):
                 value = np.deg2rad(value)
 
         self.resize((len(self) + len(value), 3))
-        self[-len(value) :] = value
+        self[-len(value):] = value
 
     def asQuaternionArray(self):
         """ Convert this EulerArray object to a QuaternionArray

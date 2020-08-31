@@ -1,5 +1,6 @@
 import numpy as np
 from vectorN import VectorN, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
+from .utils import arrayCompat
 
 
 class MatrixN(np.ndarray):
@@ -337,7 +338,7 @@ class MatrixNArray(np.ndarray):
             An iterable to be added to the end of this array
         """
         self.resize((len(self) + len(value), self.N, self.N))
-        self[-len(value) :] = value
+        self[-len(value):] = value
 
     def inverse(self):
         """ Return the inverse of the current matrixes
@@ -376,6 +377,7 @@ class MatrixNArray(np.ndarray):
         # This algorithm doesn't actually assume the basis vectors are
         # perpendicular to each other.
 
+        # ---------------------------------------------------------------
         # The algorithm assumes intrinsic frame transformations. The algorithm
         # in the paper is formulated for rotation matrices which are transposition
         # rotation matrices used within Rotation.
@@ -533,9 +535,9 @@ class MatrixNArray(np.ndarray):
 
         Parameters
         ----------
-        looks: Vector3Array
+        looks: Vector3, Vector3Array, list
             The pointing directions of the look axis
-        ups: Vector3Array
+        ups: Vector3, Vector3Array, list
             The pointing directions of the up axis
         axis: string
             The axes to align to the look and up vectors (ie: 'xy', 'yz', '-zy', 'x-z')
@@ -546,6 +548,7 @@ class MatrixNArray(np.ndarray):
             The looking matrices
 
         """
+        looks, ups = arrayCompat(looks, ups)
         looks = VECTOR_ARRAY_BY_SIZE[3](looks)
         ups = VECTOR_ARRAY_BY_SIZE[3](ups)
 
@@ -606,7 +609,7 @@ class MatrixNArray(np.ndarray):
 
     def asScaleArray(self):
         """ Return the scale part of the matrixes
-        
+
         Returns
         -------
         Vector3Array:
@@ -653,8 +656,9 @@ class MatrixNArray(np.ndarray):
         TransformArray:
             The transform array
         """
+        from .transformation import TransformationArray
         t, r, s = self.decompose()
-        return TransformArray.fromParts(translation=t, rotation=r, scale=s)
+        return TransformationArray.fromParts(translation=t, rotation=r, scale=s)
 
 
 # Register the default sizes of array dynamically

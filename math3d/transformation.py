@@ -80,6 +80,48 @@ class Transformation(np.ndarray):
         ret[:3, :3] = rot
         return ret
 
+    @classmethod
+    def partCheck(cls, translation=None, rotation=None, scale=None):
+        if translation is not None:
+            translation = np.asarray(translation)
+            if translation.ndim > 1:
+                raise ValueError("Translation has too many dimensions")
+            elif translation.shape[-1] != 3:
+                raise ValueError("Provided translation is not 3d")
+
+        if scale is not None:
+            scale = np.asarray(scale)
+            if scale.ndim > 1:
+                raise ValueError("Scale has too many dimensions")
+            elif scale.shape[-1] != 3:
+                raise ValueError("Provided scale is not 3d")
+
+        if rotation is not None:
+            rotation = np.asarray(rotation)
+            if rotation.ndim > 1:
+                raise ValueError("Rotation has too many dimensions")
+            elif isinstance(rotation, Euler):
+                rotation = rotation.asQuaternion()
+            elif rotation.shape[-1] != 4:
+                raise ValueError(
+                    "Provided rotation could not be converted to quaternions"
+                )
+        return translation, rotation, scale
+
+    @classmethod
+    def fromParts(cls, translation=None, rotation=None, scale=None):
+        translation, rotation, scale = cls.partCheck(
+            translation=translation, rotation=rotation, scale=scale
+        )
+        ret = cls()
+        if translation is not None:
+            ret.translation = translation
+        if scale is not None:
+            ret.scale = scale
+        if rotation is not None:
+            ret.rotation = ret.rotation
+        return ret
+
 
 class TransformationArray(np.ndarray):
     def __new__(cls, input_array=None):
@@ -140,7 +182,8 @@ class TransformationArray(np.ndarray):
 
         count = [len(i) for i in (translation, rotation, scale) if i is not None]
         if not count:
-            raise ValueError("Nothing passed to the .fromParts constructor")
+            raise ValueError("Nothing passed to the .fromParts constructor. Cannot infer length")
+
         count = sorted(set(count))
         if len(count) == 2:
             if count[0] != 1:

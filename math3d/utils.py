@@ -1,19 +1,15 @@
 import numpy as np
 
 
-def arrayCompat(minDim=2, maxDim=2, *args):
+def arrayCompat(nDim=2, *args):
     """ Make sure the given arrays have compatible dimensions
 
     Parameters
     ----------
     *args : np.array or list
         All of the arrays to convert
-    minDim : int, optional
-        The minimum number of dimensions that the arrays should have
-        Defaults to 2
-    maxDim : int, optional
-        The maximum number of dimensions that the arrays should have
-        If None, the dimensions are unbounded
+    nDim : int, optional
+        The number of dimensions that the arrays should have
         Defaults to 2
 
     Returns
@@ -28,16 +24,20 @@ def arrayCompat(minDim=2, maxDim=2, *args):
         If the number of dimensions of an array is greater than maxDim
 
     """
-    pre = [1] * minDim
+    pre = [1] * nDim
     ret = []
     for i, a in enumerate(args):
         a = np.asarray(a)
-        if a.ndim < minDim:
-            newShape = pre + list(a.shape)[:-minDim]
+        if a.ndim < nDim:
+            newShape = pre + list(a.shape)[:-nDim]
             a = a.reshape(newShape)
-        elif maxDim is not None and a.ndim > maxDim:
+        elif a.ndim > nDim:
             raise ValueError(
-                "Input number {0} has more than {1} dimensions".format(i, maxDim)
+                "Input number {0} has more than {1} dimensions".format(i, nDim)
             )
         ret.append(a)
     return ret
+
+def toType(typ, *args):
+    """ Cast all the args to the given type, but only if needed """
+    return [a if isinstance(a, typ) else a.view(typ) for a in args]

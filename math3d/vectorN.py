@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import arrayCompat, toType
 
 
 class VectorN(np.ndarray):
@@ -127,6 +128,7 @@ class VectorN(np.ndarray):
         return np.cross(self, other)
 
     def __mul__(self, other):
+        other = np.asarray(other)
         if isinstance(other, VectorN):
             if self.N != other.N:
                 raise TypeError(
@@ -167,6 +169,8 @@ class VectorN(np.ndarray):
             ret = QuaternionArray.vectoquatproduct(exp.toArray(), other)
             return ret.toVectorSize(self.N)
 
+        return super(VectorN, self).__mul__(other)
+
     @classmethod
     def planeNormal(cls, center, pos1, pos2, normalize=False):
         """ Convenience constructor to build a plane normal based off 3 points
@@ -185,9 +189,8 @@ class VectorN(np.ndarray):
         pos2: vector3
             The second axis point
         """
-        ret = VectorNArray.planeNormals(
-            center[None, ...], pos1[None, ...], pos2[None, ...], normalize=normalize
-        )
+        center, pos1, pos2 = arrayCompat(center, pos1, pos2)
+        ret = VectorNArray.planeNormals(center, pos1, pos2, normalize=normalize)
         return ret[0]
 
     def distance(self, other):
@@ -262,7 +265,7 @@ class VectorNArray(np.ndarray):
         np.ndarray:
             The squared lengths of the vectors
         """
-        return np.einsum("ij,ij->i", self, self)
+        return np.einsum("...ij,...ij->...i", self, self)
 
     def length(self):
         """ Return the length of each vector
@@ -312,7 +315,7 @@ class VectorNArray(np.ndarray):
         """
         return cls(np.full((length, cls.N), value))
 
-    def toVectorSize(self, n, pad=1.0, copy=False):
+    def toVectorSize(self, n, pad=1.0):
         """ Return a vector of a given size based on the current vector.
         Discard the ending items if the size is smaller
         Pad up if the size is bigger, filled with the pad value
@@ -329,9 +332,7 @@ class VectorNArray(np.ndarray):
 
         """
         if n == self.N:
-            if copy:
-                return self.copy()
-            return self
+            return self.copy()
         typ = VECTOR_ARRAY_BY_SIZE[n]
         ret = typ.full(len(self), pad)
         n = min(n, self.N)
@@ -373,13 +374,15 @@ class VectorNArray(np.ndarray):
         VectorNArray:
             The result of the per-row cross product
         """
+        other = arrayCompat(other)
         return np.cross(self, other)
 
     def __mul__(self, other):
+        other = np.asarray(other)
         if isinstance(other, VectorNArray):
             if other.N != self.N:
                 raise TypeError("Can't dot vectors of different length")
-            return np.einsum("ij,ij->i", self, other)
+            return np.einsum("...ij,...ij->...i", self, other)
         elif isinstance(other, VectorN):
             if other.N != self.N:
                 raise TypeError("Can't dot vectors of different length")
@@ -397,7 +400,7 @@ class VectorNArray(np.ndarray):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
             exp = self.toVectorSize(other.N)
-            ret = np.einsum("ij, ijk -> ik", exp, other)
+            ret = np.einsum("...ij, ...ijk -> ...ik", exp, other)
             return ret.toVectorSize(self.N)
 
         from .quaternion import Quaternion, QuaternionArray
@@ -412,6 +415,8 @@ class VectorNArray(np.ndarray):
             ret = QuaternionArray.vectoquatproduct(exp, other)
             return ret.toVectorSize(self.N)
 
+        return super(VectorNArray, self).__mul__(other)
+
     def angle(self, other):
         """ Get the angle between pairs of vectors
 
@@ -425,8 +430,12 @@ class VectorNArray(np.ndarray):
         np.ndarray:
             The angles between the paired vectors in radians
         """
-        dots = self.normal() * other.normal()
-        return np.acos(dots)
+        other = arrayCompat(other)
+        typ = type(self)
+        if not isinstance(other, typ):
+            other = other.view(typ)
+
+        return np.acos(self.normal() * other.normal())
 
     @classmethod
     def planeNormals(cls, centers, pos1, pos2, normalize=False):
@@ -446,9 +455,8 @@ class VectorNArray(np.ndarray):
         pos2: vector3Array
             The array of second axis points
         """
-        centers = centers.toVectorSize(3)
-        pos1 = pos1.toVectorSize(3)
-        pos2 = pos2.toVectorSize(3)
+        centers, pos1, pos2 = arrayCompat(centers, pos1, pos2)
+        centers, pos1, pos2 = toType(VECTOR_ARRAY_BY_SIZE[3], centers, pos1, pos2)
 
         vec1 = (pos1 - centers).normal()
         vec2 = (pos2 - centers).normal()
@@ -459,13 +467,15 @@ class VectorNArray(np.ndarray):
         return ret
 
     def adjacentLengths(self):
-        """ Return the length of each adjacent pair if vertices
+        """ Return the distance between each adjacent pair if vertices
 
         Returns
         -------
         np.ndarray
             The length of each adjacent pair if vertices
         """
+        if len(self) < 2:
+            raise ValueError("There must be at least 2 vectors to get adjacent lengths")
         return (self[1:] - self[:-1]).length()
 
     def distances(self, other):
@@ -486,12 +496,27 @@ class VectorNArray(np.ndarray):
         return (self - other).length()
 
     def lerp(self, other, percent):
-        if isinstance(other, VectorN):
-            other = other.asArray()
-        return ((other - sa) * percent) + sa
+        """ Linearly interpolate between two sets of vectors
+
+        Parameters
+        ----------
+        other: VectorNArray, VectorN, np.ndarray, list
+            The other set of vectors to interpolate with
+        percent: np.ndarray, float
+            The percentage to interpolate. If it's iterable, the list must be
+            exactly as long as self and other
+
+        Returns
+        -------
+        VectorNArray:
+            The new points some percentage of the way to the other points
+        """
+        other = arrayCompat(other)
+        percent = arrayCompat(percent, nDim=1)
+        return ((other - self) * percent[..., None]) + self
 
     def parallelTransport(self, upv, inverse=False):
-        """ Take a normal and copy it along these ordered points.
+        """ Take a normal and transport it along these ordered points.
         When 3 adjacent points aren't in a straight line, rotate the normal
         by the angle of those points
 
