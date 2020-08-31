@@ -53,7 +53,7 @@ class Transformation(np.ndarray):
         self[:3] = other
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         if not shape:
             return None
         if len(shape) == 1:
@@ -68,7 +68,7 @@ class Transformation(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(Transformation, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
@@ -234,7 +234,7 @@ class TransformationArray(np.ndarray):
         return "\n".join(lines)
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         if not shape:
             return None
         if len(shape) == 1:
@@ -248,7 +248,7 @@ class TransformationArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(TransformationArray, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)

@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import arrayCompat
 
 
 class Euler(np.ndarray):
@@ -82,7 +83,7 @@ class Euler(np.ndarray):
         return self.copy()
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -108,7 +109,7 @@ class Euler(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(Euler, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
@@ -166,7 +167,10 @@ class EulerArray(np.ndarray):
         ary = np.asarray(inputArray, dtype=float)
         ary = ary.reshape((-1, 3))
         ret = ary.view(cls)
-        ret.order = order.lower()
+        order = order.lower()
+        if sorted(list(order)) != ["x", "y", "z"]:
+            raise ValueError("Order is not a permutation of 'xyz'")
+        ret.order = order
         ret._degrees = degrees
         return ret
 
@@ -177,7 +181,7 @@ class EulerArray(np.ndarray):
         self._degrees = getattr(obj, "degrees", False)
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -203,7 +207,7 @@ class EulerArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(EulerArray, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
@@ -266,6 +270,7 @@ class EulerArray(np.ndarray):
     def append(self, value):
         """ Append an item to the end of this array
         Euler types will be converted to match degrees or radians
+        All other types will be appended as-is
 
         Parameters
         ----------
@@ -290,7 +295,7 @@ class EulerArray(np.ndarray):
         value: iterable
             A multiple-of-length-3 iterable to be appended to the end of this array
         """
-        value = np.asarray(value, dtype=float)
+        value = arrayCompat(value)
         if isinstance(value, EulerArray):
             if self.degrees and not value.degrees:
                 value = np.rad2deg(value)

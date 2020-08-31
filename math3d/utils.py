@@ -31,6 +31,10 @@ def arrayCompat(nDim=2, *args):
         if a.ndim < nDim:
             newShape = pre + list(a.shape)[:-nDim]
             a = a.reshape(newShape)
+            if hasattr(a, 'getReturnType'):
+                newTyp = a.getReturnType(newShape)
+                a = a.view(newTyp)
+
         elif a.ndim > nDim:
             raise ValueError(
                 "Input number {0} has more than {1} dimensions".format(i, nDim)

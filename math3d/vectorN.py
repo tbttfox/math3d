@@ -15,7 +15,7 @@ class VectorN(np.ndarray):
         return ary.view(cls)
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -43,7 +43,7 @@ class VectorN(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(VectorN, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
@@ -224,7 +224,7 @@ class VectorNArray(np.ndarray):
         return ary.view(cls)
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -252,7 +252,7 @@ class VectorNArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(VectorNArray, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)

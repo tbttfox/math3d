@@ -25,7 +25,7 @@ class MatrixN(np.ndarray):
         return ary.view(cls)
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -56,7 +56,7 @@ class MatrixN(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(MatrixN, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
@@ -216,7 +216,7 @@ class MatrixNArray(np.ndarray):
         return ary.view(cls)
 
     @classmethod
-    def _getReturnType(cls, shape):
+    def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -247,7 +247,7 @@ class MatrixNArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(MatrixNArray, self).__getitem__(idx)
-        typ = self._getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
         return ret.view(typ)
@@ -386,6 +386,9 @@ class MatrixNArray(np.ndarray):
         # O matrix as defined in the paper, and be careful to swap indices
 
         order = order.lower()
+        if sorted(list(order)) != ["x", "y", "z"]:
+            raise ValueError("The given order is not a permutation of 'xyz'")
+
         if self.ndim == 2:
             self = self.toArray()
 
