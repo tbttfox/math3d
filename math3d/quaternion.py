@@ -86,8 +86,11 @@ class Quaternion(np.ndarray):
             return QuaternionArray.quatquatProduct(self[None, ...], other)
 
         from .vectorN import VectorN, VectorNArray
+
         if isinstance(other, VectorN, VectorNArray):
-            raise NotImplementedError("Vectors must always be on the left side of the multiplication")
+            raise NotImplementedError(
+                "Vectors must always be on the left side of the multiplication"
+            )
 
         return super(Quaternion, self).__mul__(other)
 
@@ -101,7 +104,7 @@ class Quaternion(np.ndarray):
         """
         return self[None, :].asMatrixArray()[0]
 
-    def asEuler(self, order='xyz', degrees=False):
+    def asEuler(self, order="xyz", degrees=False):
         """ Convert the quaternion to an Euler rotation
 
         Parameters
@@ -137,6 +140,7 @@ class Quaternion(np.ndarray):
             ['xy', 'xz', 'yx', 'yz', 'zx', 'zy']
         """
         from .matrixN import MatrixNArray
+
         mats = MatrixNArray.lookAts([look], [up], axis=axis)
         return mats.asQuaternionArray()[0]
 
@@ -260,7 +264,7 @@ class QuaternionArray(np.ndarray):
             An iterable to be added to the end of this array
         """
         self.resize((len(self) + len(v), 4))
-        self[-len(v):] = v
+        self[-len(v) :] = v
 
     @classmethod
     def alignedRotations(cls, axisName, angles, degrees=False):
@@ -280,7 +284,7 @@ class QuaternionArray(np.ndarray):
         angles = np.asarray(angles, dtype=float)
         if degrees:
             angles = np.deg2rad(angles)
-        ind = 'xyz'.index(axisName.lower())
+        ind = "xyz".index(axisName.lower())
         ret = cls.zeros((len(angles), 4))
         ret[:, 3] = np.cos(angles / 2)
         ret[:, ind] = np.sin(angles / 2)
@@ -350,6 +354,7 @@ class QuaternionArray(np.ndarray):
         """
 
         from .matrixN import Matrix3Array
+
         x = self[:, 0]
         y = self[:, 1]
         z = self[:, 2]
@@ -384,7 +389,7 @@ class QuaternionArray(np.ndarray):
 
         return mats
 
-    def asEulerArray(self, order='xyz', degrees=False):
+    def asEulerArray(self, order="xyz", degrees=False):
         """ Convert the quaternion to an array of Euler rotations
 
         Parameters
@@ -411,8 +416,11 @@ class QuaternionArray(np.ndarray):
             return self.quatquatProduct(self, other[None, ...])
 
         from .vectorN import VectorN, VectorNArray
+
         if isinstance(other, VectorN, VectorNArray):
-            raise NotImplementedError("Vectors must always be on the left side of the multiplication")
+            raise NotImplementedError(
+                "Vectors must always be on the left side of the multiplication"
+            )
 
         return super(QuaternionArray, self).__mul__(other)
 
@@ -435,6 +443,7 @@ class QuaternionArray(np.ndarray):
             The looking matrices
         """
         from .matrixN import MatrixNArray
+
         mats = MatrixNArray.lookAts(looks, ups, axis=axis)
         return mats.asQuaternionArray()
 
@@ -482,4 +491,3 @@ class QuaternionArray(np.ndarray):
         ratioA = np.sin((1 - tVal) * halfAngle) / sinHalfAngle
         ratioB = np.sin(tVal * halfAngle) / sinHalfAngle
         return (self * ratioA) + (other * ratioB)
-

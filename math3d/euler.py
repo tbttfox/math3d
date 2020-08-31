@@ -16,7 +16,8 @@ class Euler(np.ndarray):
     degrees: bool, optional
         Whether the angles are given in degrees or radians. Defaults to False (radians)
     """
-    def __new__(cls, inputArray=None, order='xyz', degrees=False):
+
+    def __new__(cls, inputArray=None, order="xyz", degrees=False):
         if inputArray is None:
             ary = np.zeros(3)
         else:
@@ -34,8 +35,8 @@ class Euler(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        self.order = getattr(obj, 'order', 'xyz')
-        self._degrees = getattr(obj, 'degrees', False)
+        self.order = getattr(obj, "order", "xyz")
+        self._degrees = getattr(obj, "degrees", False)
 
     def toArray(self):
         """ Return the array type of this object
@@ -46,7 +47,6 @@ class Euler(np.ndarray):
             The current object up-cast into a length-1 array
         """
         return self[None, ...]
-
 
     @property
     def degrees(self):
@@ -161,7 +161,8 @@ class EulerArray(np.ndarray):
     degrees: bool, optional
         Whether the angles are given in degrees or radians. Defaults to False (radians)
     """
-    def __new__(cls, inputArray, order='xyz', degrees=False):
+
+    def __new__(cls, inputArray, order="xyz", degrees=False):
         ary = np.asarray(inputArray, dtype=float)
         ary = ary.reshape((-1, 3))
         ret = ary.view(cls)
@@ -172,8 +173,8 @@ class EulerArray(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        self.order = getattr(obj, 'order', 'xyz')
-        self._degrees = getattr(obj, 'degrees', False)
+        self.order = getattr(obj, "order", "xyz")
+        self._degrees = getattr(obj, "degrees", False)
 
     @classmethod
     def _getReturnType(cls, shape):
@@ -297,7 +298,7 @@ class EulerArray(np.ndarray):
                 value = np.deg2rad(value)
 
         self.resize((len(self) + len(value), 3))
-        self[-len(value):] = value
+        self[-len(value) :] = value
 
     def asQuaternionArray(self):
         """ Convert this EulerArray object to a QuaternionArray
@@ -308,6 +309,7 @@ class EulerArray(np.ndarray):
             The current orientations as a quaternionArray
         """
         from .quaternion import QuaternionArray
+
         # Convert multiple euler triples to quaternions
         eulers = self
         if self.degrees:
@@ -328,4 +330,3 @@ class EulerArray(np.ndarray):
         """
         q = self.asQuaternionArray()
         return q.asMatrixArray()
-

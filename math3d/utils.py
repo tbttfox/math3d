@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def arrayCompat(minDim=2, maxDim=2, *args):
     """ Make sure the given arrays have compatible dimensions
 
@@ -35,8 +36,8 @@ def arrayCompat(minDim=2, maxDim=2, *args):
             newShape = pre + list(a.shape)[:-minDim]
             a = a.reshape(newShape)
         elif maxDim is not None and a.ndim > maxDim:
-            raise ValueError("Input number {0} has more than {1} dimensions".format(i, maxDim))
+            raise ValueError(
+                "Input number {0} has more than {1} dimensions".format(i, maxDim)
+            )
         ret.append(a)
     return ret
-
-

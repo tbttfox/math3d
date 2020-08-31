@@ -3,4 +3,3 @@ from .transformation import Transformation, TransformationArray
 from .vectorN import Vector3, Vector4, Vector3Array, Vector4Array
 from .quaternion import Quaternion, QuaternionArray
 from .euler import Euler, EulerArray
-

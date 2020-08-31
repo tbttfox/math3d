@@ -214,7 +214,6 @@ class VectorN(np.ndarray):
         return ((other - sa) * percent) + sa
 
 
-
 class VectorNArray(np.ndarray):
     def __new__(cls, input_array):
         ary = np.asarray(input_array, dtype=float)
@@ -522,12 +521,11 @@ class VectorNArray(np.ndarray):
         out = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self))
         out[0] = upv
         for i in range(len(self) - 1):
-            out[i+1] = out[i] * quats[i]
+            out[i + 1] = out[i] * quats[i]
 
         # The last upvector is a repeat of the previous one
         out[-1] = out[-2]
         return out
-        
 
 
 # Register the default sizes of array dynamically

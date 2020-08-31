@@ -337,7 +337,7 @@ class MatrixNArray(np.ndarray):
             An iterable to be added to the end of this array
         """
         self.resize((len(self) + len(value), self.N, self.N))
-        self[-len(value):] = value
+        self[-len(value) :] = value
 
     def inverse(self):
         """ Return the inverse of the current matrixes
