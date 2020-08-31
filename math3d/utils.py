@@ -40,4 +40,5 @@ def arrayCompat(nDim=2, *args):
 
 def toType(typ, *args):
     """ Cast all the args to the given type, but only if needed """
+    args = [np.asarray(a) for a in args]
     return [a if isinstance(a, typ) else a.view(typ) for a in args]
