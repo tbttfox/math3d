@@ -438,5 +438,48 @@ class QuaternionArray(np.ndarray):
         mats = MatrixNArray.lookAts(looks, ups, axis=axis)
         return mats.asQuaternionArray()
 
+    def angles(self, other):
+        """ Return the minimal angles between two quaternion rotations
 
+        Parameters
+        ----------
+        other: Quaternion, QuaternionArray
+            The other quaterions to compare to
+
+        Returns
+        -------
+        np.ndarray:
+            The calculated angles
+        """
+        return 2 * np.acos(np.einsum("ij, ij -> i", self.toArray(), other.toArray()))
+
+    def slerp(self, other, tVal):
+        """ Perform item-wise spherical linear interpolation at the given sample points
+
+        Parameters
+        ----------
+        other: Quaterion, QuaternionArray
+            The other quaternions to slerp between
+        tVal: float
+            The percentages to compute for the slerp. For instance .25 would
+            calculate the slerp at 25% all pairs
+
+        Returns
+        -------
+        QuaternnionArray:
+            A quaternion array of interpolands
+        """
+        cosHalfAngle = np.einsum("ij, ij -> i", self.toArray(), other.toArray())
+
+        # Handle floating point errors
+        zeroAngle = abs(cosHalfAngle) >= 1.0
+        cosHalfAngle[zeroAngle] = 1.0
+
+        # Calculate the sin values
+        halfAngle = np.acos(cosHalfAngle)
+        sinHalfAngle = np.sqrt(1.0 - cosHalfAngle * cosHalfAngle)
+
+        ratioA = np.sin((1 - tVal) * halfAngle) / sinHalfAngle
+        ratioB = np.sin(tVal * halfAngle) / sinHalfAngle
+        return (self * ratioA) + (other * ratioB)
 
