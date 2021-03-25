@@ -76,7 +76,7 @@ class Transformation(np.ndarray):
     def asMatrix(self):
         ret = Matrix4()
         ret[3, :3] = self.translation
-        rot = np.diag(self.scale) * self.rotation.asMatrix()
+        rot = np.dot(np.diag(self.scale), self.rotation.asMatrix())
         ret[:3, :3] = rot
         return ret
 
@@ -119,7 +119,7 @@ class Transformation(np.ndarray):
         if scale is not None:
             ret.scale = scale
         if rotation is not None:
-            ret.rotation = ret.rotation
+            ret.rotation = rotation
         return ret
 
 
