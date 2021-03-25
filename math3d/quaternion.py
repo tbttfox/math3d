@@ -356,38 +356,37 @@ class QuaternionArray(np.ndarray):
         """
 
         from .matrixN import Matrix3Array
-
         x = self[:, 0]
         y = self[:, 1]
         z = self[:, 2]
         w = self[:, 3]
 
-        x2 = x * x
-        y2 = y * y
-        z2 = z * z
-        w2 = w * w
-
+        xx = x * x
         xy = x * y
-        zw = z * w
         xz = x * z
-        yw = y * w
-        yz = y * z
         xw = x * w
+
+        yy = y * y
+        yz = y * z
+        yw = y * w
+
+        zz = z * z
+        zw = z * w
 
         num_rotations = len(self)
         mats = Matrix3Array.zeros(num_rotations)
 
-        mats[:, 0, 0] = x2 - y2 - z2 + w2
-        mats[:, 1, 0] = 2 * (xy + zw)
-        mats[:, 2, 0] = 2 * (xz - yw)
-
+        mats[:, 0, 0] = 1 - 2 * (yy + zz)
         mats[:, 0, 1] = 2 * (xy - zw)
-        mats[:, 1, 1] = -x2 + y2 - z2 + w2
-        mats[:, 2, 1] = 2 * (yz + xw)
-
         mats[:, 0, 2] = 2 * (xz + yw)
+
+        mats[:, 1, 0] = 2 * (xy + zw)
+        mats[:, 1, 1] = 1 - 2 * (xx + zz)
         mats[:, 1, 2] = 2 * (yz - xw)
-        mats[:, 2, 2] = -x2 - y2 + z2 + w2
+
+        mats[:, 2, 0] = 2 * (xz - yw)
+        mats[:, 2, 1] = 2 * (yz + xw)
+        mats[:, 2, 2] = 1 - 2 * (xx + yy)
 
         return mats
 

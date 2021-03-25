@@ -50,7 +50,7 @@ class MatrixN(np.ndarray):
             if shape[-1] == cls.N:
                 return cls.vectorArrayType
         elif len(shape) == 3:
-            if shape[:-2] == (cls.N, cls.N):
+            if shape[-2:] == (cls.N, cls.N):
                 return cls.arrayType
         return np.ndarray
 
@@ -402,7 +402,7 @@ class MatrixNArray(np.ndarray):
             b = np.zeros(3)
             b["xyz".index(axis)] = 1
             bvs.append(b)
-        n1, n2, n3 = b
+        n1, n2, n3 = bvs[:3]
 
         # Step 2
         # SL is the parity of the order
@@ -486,9 +486,9 @@ class MatrixNArray(np.ndarray):
         # " it is not possible to uniquely determine all angles."
         # )
         if degrees:
-            angles = np.deg2rad(angles)
+            angles = np.rad2deg(angles)
 
-        return EulerArray(angles)
+        return EulerArray(angles, degrees=degrees)
 
     def asQuaternionArray(self):
         """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
