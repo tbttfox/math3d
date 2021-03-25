@@ -3,6 +3,7 @@ from .utils import arrayCompat
 
 
 class Quaternion(np.ndarray):
+    """ A single quaternion object stored in xyzw order (scalar last) """
     def __new__(cls, input_array=None):
         if input_array is None:
             ary = np.zeros(4)
@@ -14,6 +15,60 @@ class Quaternion(np.ndarray):
                 "Initializer for Vector{0} must be of length {0}".format(4)
             )
         return ary.view(cls)
+
+    @classmethod
+    def fromComponents(cls, x, y, z, w):
+        """ Build a quaternion from individual components
+
+        Parameters
+        ----------
+        x: float
+            The X Component of the quaternion
+        y: float
+            The Y Component of the quaternion
+        z: float
+            The Z Component of the quaternion
+        w: float
+            The W Component of the quaternion
+
+        Returns
+        -------
+        Quaternion
+            The resulting quaternion
+        """
+        return cls([x, y, z, w])
+
+    @property
+    def x(self):
+        return self[0]
+
+    @x.setter
+    def x(self, val):
+        self[0] = val
+
+    @property
+    def y(self):
+        return self[1]
+
+    @y.setter
+    def y(self, val):
+        self[1] = val
+
+    @property
+    def z(self):
+        return self[2]
+
+    @z.setter
+    def z(self, val):
+        self[2] = val
+
+    @property
+    def w(self):
+        return self[3]
+
+    @w.setter
+    def w(self, val):
+        self[3] = val
 
     @classmethod
     def getReturnType(cls, shape):
@@ -162,10 +217,69 @@ class Quaternion(np.ndarray):
 
 
 class QuaternionArray(np.ndarray):
+    """ An array of Quaternion objects """
+
     def __new__(cls, input_array):
         ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, 4))
         return ary.view(cls)
+
+    @classmethod
+    def fromComponentArrays(cls, x, y, z, w):
+        """ Build a quaternion array from individual component arrays
+        The arrays must have the same length
+
+        Parameters
+        ----------
+        x: array
+            The array of X components of the quaternions
+        y: array
+            The array of Y components of the quaternions
+        z: array
+            The array of Z components of the quaternions
+        w: array
+            The array of W components of the quaternions
+
+        Returns
+        -------
+        QuaternionArray
+            The resulting quaternion array
+        """
+
+        ret = np.array([x, y, z, w]).T
+        return cls(ret)
+
+    @property
+    def x(self):
+        return self[:, 0]
+
+    @x.setter
+    def x(self, val):
+        self[:, 0] = val
+
+    @property
+    def y(self):
+        return self[:, 1]
+
+    @y.setter
+    def y(self, val):
+        self[:, 1] = val
+
+    @property
+    def z(self):
+        return self[:, 2]
+
+    @z.setter
+    def z(self, val):
+        self[:, 2] = val
+
+    @property
+    def w(self):
+        return self[:, 3]
+
+    @w.setter
+    def w(self, val):
+        self[:, 3] = val
 
     @classmethod
     def getReturnType(cls, shape):
