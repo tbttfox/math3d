@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import arrayCompat
+from .utils import arrayCompat, asarray
 
 
 class Quaternion(np.ndarray):
@@ -136,7 +136,7 @@ class Quaternion(np.ndarray):
         return np.sqrt(self.lengthSquared())
 
     def __mul__(self, other):
-        other = np.asarray(other)
+        other = asarray(other)
         if isinstance(other, Quaternion):
             return QuaternionArray.quatquatProduct(self[None, ...], other[None, ...])[0]
         elif isinstance(other, QuaternionArray):
@@ -212,7 +212,7 @@ class Quaternion(np.ndarray):
             If true, then assume the angles are in degrees instead of radians
             Defaults to False
         """
-        axis = np.asarray(axis)
+        axis = asarray(axis)
         return QuaternionArray.axisAngle(axis[None, ...], [angle], degrees=degrees)[0]
 
 
@@ -399,7 +399,7 @@ class QuaternionArray(np.ndarray):
         if degrees:
             angles = np.deg2rad(angles)
         ind = "xyz".index(axisName.lower())
-        ret = cls.zeros((len(angles), 4))
+        ret = cls.zeros(len(angles))
         ret[:, 3] = np.cos(angles / 2)
         ret[:, ind] = np.sin(angles / 2)
         return ret
@@ -430,10 +430,11 @@ class QuaternionArray(np.ndarray):
         ret[:, 3] = np.cos(angles)
         return ret
 
-    @staticmethod
-    def quatquatProduct(p, q):
+    @classmethod
+    def quatquatProduct(cls, p, q):
         """ A multiplication of two quaternions
         You shouldn't be calling this directly
+        It provides no checks for correct inputs
         """
         # This assumes the arrays are shaped correctly
         p, q = arrayCompat(p, q)
@@ -444,12 +445,13 @@ class QuaternionArray(np.ndarray):
             + q[:, None, 3] * p[:, :3]
             + np.cross(p[:, :3], q[:, :3])
         )
-        return prod
+        return cls(prod)
 
     @staticmethod
     def vectorquatproduct(v, q):
         """ A multiplication of a vectorArray and a quaternionArray
         You shouldn't be calling this directly
+        It provides no checks for correct inputs
         """
         # This assumes the arrays are shaped correctly
         v, q = arrayCompat(v, q)

@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def arrayCompat(nDim=2, *args):
+def arrayCompat(*args, **kwargs):
     """ Make sure the given arrays have compatible dimensions
 
     Parameters
@@ -24,10 +24,12 @@ def arrayCompat(nDim=2, *args):
         If the number of dimensions of an array is greater than maxDim
 
     """
+    nDim = kwargs.get('nDim', 2)
+
     pre = [1] * nDim
     ret = []
     for i, a in enumerate(args):
-        a = np.asarray(a)
+        a = asarray(a)
         if a.ndim < nDim:
             newShape = pre + list(a.shape)[:-nDim]
             a = a.reshape(newShape)
@@ -42,7 +44,18 @@ def arrayCompat(nDim=2, *args):
         ret.append(a)
     return ret
 
+def asarray(ary):
+    """ Return a numpy array of the given object
+    If it is already a numpy array type (or any of the math3d subclasses)
+    just return the object
+    """
+    if not isinstance(ary, np.ndarray):
+        return np.asarray(ary)
+    return ary
+
 def toType(typ, *args):
     """ Cast all the args to the given type, but only if needed """
-    args = [np.asarray(a) for a in args]
+    args = [asarray(a) for a in args]
     return [a if isinstance(a, typ) else a.view(typ) for a in args]
+
+

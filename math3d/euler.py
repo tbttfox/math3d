@@ -316,13 +316,9 @@ class EulerArray(np.ndarray):
         from .quaternion import QuaternionArray
 
         # Convert multiple euler triples to quaternions
-        eulers = self
-        if self.degrees:
-            eulers = np.deg2rad(self)
-
-        result = QuaternionArray.alignedRotations(self.order[0], eulers[:, 0])
+        result = QuaternionArray.alignedRotations(self.order[0], self[:, 0], degrees=self._degrees)
         for idx, axis in enumerate(self.order[1:], start=1):
-            result = result * QuaternionArray.alignedRotations(axis, eulers[:, idx])
+            result = result * QuaternionArray.alignedRotations(axis, self[:, idx], degrees=self._degrees)
         return result
 
     def asMatrixArray(self):

@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import arrayCompat, toType
+from .utils import arrayCompat, toType, asarray
 
 
 class VectorN(np.ndarray):
@@ -128,7 +128,7 @@ class VectorN(np.ndarray):
         return np.cross(self, other)
 
     def __mul__(self, other):
-        other = np.asarray(other)
+        other = asarray(other)
         if isinstance(other, VectorN):
             if self.N != other.N:
                 raise TypeError(
@@ -161,12 +161,12 @@ class VectorN(np.ndarray):
 
         if isinstance(other, Quaternion):
             exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectoquatproduct(exp.toArray(), other.toArray())
+            ret = QuaternionArray.vectorquatproduct(exp.toArray(), other.toArray())
             return ret[0].toVectorSize(self.N)
 
         elif isinstance(other, QuaternionArray):
             exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectoquatproduct(exp.toArray(), other)
+            ret = QuaternionArray.vectorquatproduct(exp.toArray(), other)
             return ret.toVectorSize(self.N)
 
         return super(VectorN, self).__mul__(other)
@@ -378,7 +378,7 @@ class VectorNArray(np.ndarray):
         return np.cross(self, other)
 
     def __mul__(self, other):
-        other = np.asarray(other)
+        other = asarray(other)
         if isinstance(other, VectorNArray):
             if other.N != self.N:
                 raise TypeError("Can't dot vectors of different length")
@@ -407,12 +407,12 @@ class VectorNArray(np.ndarray):
 
         if isinstance(other, Quaternion):
             exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectoquatproduct(exp, other.toArray())
+            ret = QuaternionArray.vectorquatproduct(exp, other.toArray())
             return ret.toVectorSize(self.N)
 
         elif isinstance(other, QuaternionArray):
             exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectoquatproduct(exp, other)
+            ret = QuaternionArray.vectorquatproduct(exp, other)
             return ret.toVectorSize(self.N)
 
         return super(VectorNArray, self).__mul__(other)

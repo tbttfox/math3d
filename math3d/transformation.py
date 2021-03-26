@@ -3,6 +3,7 @@ from .vectorN import Vector3, Vector3Array
 from .quaternion import Quaternion, QuaternionArray
 from .matrixN import Matrix4, Matrix4Array, Matrix3Array
 from .euler import Euler, EulerArray
+from .utils import asarray
 
 
 class Transformation(np.ndarray):
@@ -83,21 +84,21 @@ class Transformation(np.ndarray):
     @classmethod
     def partCheck(cls, translation=None, rotation=None, scale=None):
         if translation is not None:
-            translation = np.asarray(translation)
+            translation = asarray(translation)
             if translation.ndim > 1:
                 raise ValueError("Translation has too many dimensions")
             elif translation.shape[-1] != 3:
                 raise ValueError("Provided translation is not 3d")
 
         if scale is not None:
-            scale = np.asarray(scale)
+            scale = asarray(scale)
             if scale.ndim > 1:
                 raise ValueError("Scale has too many dimensions")
             elif scale.shape[-1] != 3:
                 raise ValueError("Provided scale is not 3d")
 
         if rotation is not None:
-            rotation = np.asarray(rotation)
+            rotation = asarray(rotation)
             if rotation.ndim > 1:
                 raise ValueError("Rotation has too many dimensions")
             elif isinstance(rotation, Euler):
@@ -146,21 +147,21 @@ class TransformationArray(np.ndarray):
     @classmethod
     def partCheck(cls, translation=None, rotation=None, scale=None):
         if translation is not None:
-            translation = np.asarray(translation)
+            translation = asarray(translation)
             if translation.ndim == 1:
                 translation = translation[None, ...]
             if translation.shape[-1] != 3:
                 raise ValueError("Provided translation is not 3d")
 
         if scale is not None:
-            scale = np.asarray(scale)
+            scale = asarray(scale)
             if scale.ndim == 1:
                 scale = scale[None, ...]
             if scale.shape[-1] != 3:
                 raise ValueError("Provided scale is not 3d")
 
         if rotation is not None:
-            rotation = np.asarray(rotation)
+            rotation = asarray(rotation)
             if isinstance(rotation, Euler):
                 rotation = rotation.asQuaternion()[None, ...]
             elif isinstance(rotation, EulerArray):
