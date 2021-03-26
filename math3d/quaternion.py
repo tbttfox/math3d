@@ -105,7 +105,7 @@ class Quaternion(np.ndarray):
             return ret
         return ret.view(typ)
 
-    def toArray(self):
+    def asArray(self):
         """ Return the array type of this object
 
         Returns

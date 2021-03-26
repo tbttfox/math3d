@@ -48,7 +48,7 @@ class VectorN(np.ndarray):
             return ret
         return ret.view(typ)
 
-    def toArray(self):
+    def asArray(self):
         """ Return the array type of this object
 
         Returns
@@ -88,7 +88,7 @@ class VectorN(np.ndarray):
         """ Alternate constructor to build a vector of a given value """
         return cls(np.full(cls.N, value))
 
-    def toVectorSize(self, n, pad=1.0):
+    def asVectorSize(self, n, pad=1.0):
         """ Return a vector of a given size based on the current vector.
         Discard the ending items if the size is smaller
         Pad up if the size is bigger, filled with the pad value
@@ -140,34 +140,34 @@ class VectorN(np.ndarray):
                 raise TypeError(
                     "Cannot compute the dot of vectors with different sizes"
                 )
-            return np.einsum("ij, ij -> i", self.toArray(), other)
+            return np.einsum("ij, ij -> i", self.asArray(), other)
 
         from .matrixN import MatrixN, MatrixNArray
 
         if isinstance(other, MatrixN):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
-            exp = self.toVectorSize(other.N)
+            exp = self.asVectorSize(other.N)
             ret = np.dot(self, other)
-            return ret.toVectorSize(self.N)
+            return ret.asVectorSize(self.N)
         elif isinstance(other, MatrixNArray):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
-            exp = self.toVectorSize(other.N)
-            ret = np.einsum("ij, ijk -> ik", exp.toArray(), other)
-            return ret.toVectorSize(self.N)
+            exp = self.asVectorSize(other.N)
+            ret = np.einsum("ij, ijk -> ik", exp.asArray(), other)
+            return ret.asVectorSize(self.N)
 
         from .quaternion import Quaternion, QuaternionArray
 
         if isinstance(other, Quaternion):
-            exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectorquatproduct(exp.toArray(), other.toArray())
-            return ret[0].toVectorSize(self.N)
+            exp = self.asVectorSize(3)
+            ret = QuaternionArray.vectorquatproduct(exp.asArray(), other.asArray())
+            return ret[0].asVectorSize(self.N)
 
         elif isinstance(other, QuaternionArray):
-            exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectorquatproduct(exp.toArray(), other)
-            return ret.toVectorSize(self.N)
+            exp = self.asVectorSize(3)
+            ret = QuaternionArray.vectorquatproduct(exp.asArray(), other)
+            return ret.asVectorSize(self.N)
 
         return super(VectorN, self).__mul__(other)
 
@@ -207,7 +207,7 @@ class VectorN(np.ndarray):
             The computed distances
         """
         if isinstance(other, VectorNArray):
-            return (self.toArray() - other).length()
+            return (self.asArray() - other).length()
         return (self - other).length()
 
     def lerp(self, other, percent):
@@ -315,7 +315,7 @@ class VectorNArray(np.ndarray):
         """
         return cls(np.full((length, cls.N), value))
 
-    def toVectorSize(self, n, pad=1.0):
+    def asVectorSize(self, n, pad=1.0):
         """ Return a vector of a given size based on the current vector.
         Discard the ending items if the size is smaller
         Pad up if the size is bigger, filled with the pad value
@@ -393,27 +393,27 @@ class VectorNArray(np.ndarray):
         if isinstance(other, MatrixN):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
-            exp = self.toVectorSize(other.N)
+            exp = self.asVectorSize(other.N)
             ret = np.dot(exp, other)
-            return ret.toVectorSize(self.N)
+            return ret.asVectorSize(self.N)
         elif isinstance(other, MatrixNArray):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
-            exp = self.toVectorSize(other.N)
+            exp = self.asVectorSize(other.N)
             ret = np.einsum("...ij, ...ijk -> ...ik", exp, other)
-            return ret.toVectorSize(self.N)
+            return ret.asVectorSize(self.N)
 
         from .quaternion import Quaternion, QuaternionArray
 
         if isinstance(other, Quaternion):
-            exp = self.toVectorSize(3)
-            ret = QuaternionArray.vectorquatproduct(exp, other.toArray())
-            return ret.toVectorSize(self.N)
+            exp = self.asVectorSize(3)
+            ret = QuaternionArray.vectorquatproduct(exp, other.asArray())
+            return ret.asVectorSize(self.N)
 
         elif isinstance(other, QuaternionArray):
-            exp = self.toVectorSize(3)
+            exp = self.asVectorSize(3)
             ret = QuaternionArray.vectorquatproduct(exp, other)
-            return ret.toVectorSize(self.N)
+            return ret.asVectorSize(self.N)
 
         return super(VectorNArray, self).__mul__(other)
 

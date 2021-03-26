@@ -39,7 +39,7 @@ class Euler(np.ndarray):
         self.order = getattr(obj, "order", "xyz")
         self._degrees = getattr(obj, "degrees", False)
 
-    def toArray(self):
+    def asArray(self):
         """ Return the array type of this object
 
         Returns
@@ -53,7 +53,7 @@ class Euler(np.ndarray):
     def degrees(self):
         return self._degrees
 
-    def toRadians(self):
+    def asRadians(self):
         """ Return a copy of this object converted to radians
 
         Returns
@@ -67,7 +67,7 @@ class Euler(np.ndarray):
             return ret
         return self.copy()
 
-    def toDegrees(self):
+    def asDegrees(self):
         """ Return a copy of this object as converted to degrees
 
         Returns
@@ -123,7 +123,7 @@ class Euler(np.ndarray):
             The current orientation as a matrix
 
         """
-        return self.toArray().asMatrixArray()[0]
+        return self.asArray().asMatrixArray()[0]
 
     def asQuaternion(self):
         """ Convert this euler object to a Quaternion
@@ -133,9 +133,9 @@ class Euler(np.ndarray):
         Quaternion
             The current orientation as a quaternion
         """
-        return self.toArray().asQuaternionArray()[0]
+        return self.asArray().asQuaternionArray()[0]
 
-    def toNewOrder(self, order):
+    def asNewOrder(self, order):
         """ Create a new euler object that represents the same orientation
         but composed with a different rotation order
 
@@ -144,7 +144,7 @@ class Euler(np.ndarray):
         Euler
             The same spatial orientation but with a different axis order
         """
-        return self.toArray().toNewOrder(order)[0]
+        return self.asArray().asNewOrder(order)[0]
 
 
 class EulerArray(np.ndarray):
@@ -216,7 +216,7 @@ class EulerArray(np.ndarray):
     def degrees(self):
         return self._degrees
 
-    def toRadians(self):
+    def asRadians(self):
         """ Return a copy of this array as converted to radians
 
         Returns
@@ -230,7 +230,7 @@ class EulerArray(np.ndarray):
             return ret
         return self.copy()
 
-    def toDegrees(self):
+    def asDegrees(self):
         """ Return a copy of this array as converted to degrees
 
         Returns
@@ -244,7 +244,7 @@ class EulerArray(np.ndarray):
             return ret
         return self.copy()
 
-    def toNewOrder(self, order):
+    def asNewOrder(self, order):
         """ Create a new EulerArray object that represents the same orientations
         but composed with a different rotation order
 

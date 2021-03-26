@@ -61,7 +61,7 @@ class MatrixN(np.ndarray):
             return ret
         return ret.view(typ)
 
-    def toArray(self):
+    def asArray(self):
         """ Return the array type of this object
 
         Returns
@@ -71,7 +71,7 @@ class MatrixN(np.ndarray):
         """
         return self[None, ...]
 
-    def toMatrixSize(self, n):
+    def asMatrixSize(self, n):
         """ Return a square matrix of a given size based on the current matrix.
         If the size is smaller, keep the upper left square of the matrix
         If the size is bigger, the new entries will the same as the identity matrix
@@ -102,11 +102,11 @@ class MatrixN(np.ndarray):
         degrees: bool, optional
             Whether the angles are given in degrees or radians. Defaults to False (radians)
         """
-        return self.toArray().asEulerArray(order=order, degrees=degrees)[0]
+        return self.asArray().asEulerArray(order=order, degrees=degrees)[0]
 
     def asQuaternion(self):
         """ Convert the upper left 3x3 of this matrix to an Quaternion rotation"""
-        return self.toArray().asQuaternionArray()[0]
+        return self.asArray().asQuaternionArray()[0]
 
     def inverse(self):
         """ Return the inverse of the current matrix """
@@ -171,7 +171,7 @@ class MatrixN(np.ndarray):
         newUpAxis: int
             The index of the new axis
         """
-        return self.toArray().changeUpAxis(oldUpAxis, newUpAxis)[0]
+        return self.asArray().changeUpAxis(oldUpAxis, newUpAxis)[0]
 
     def decompose(self):
         """ Decompose the matrix into Translation, Rotation, and Scale
@@ -185,7 +185,7 @@ class MatrixN(np.ndarray):
         Vector3:
             The Scale
         """
-        t, r, s = self.toArray().decompose()
+        t, r, s = self.asArray().decompose()
         return t[0], r[0], s[0]
 
     def asScale(self):
@@ -196,7 +196,7 @@ class MatrixN(np.ndarray):
         Vector3:
             The scale part of the matrix
         """
-        return self.toArray().asScaleArray()[0]
+        return self.asArray().asScaleArray()[0]
 
     def asTranslation(self):
         """ Return the translation part of the matrix
@@ -206,7 +206,7 @@ class MatrixN(np.ndarray):
         Vector3:
             The translation part of the matrix
         """
-        return self.toArray().asTranslationArray()[0]
+        return self.asArray().asTranslationArray()[0]
 
 
 class MatrixNArray(np.ndarray):
@@ -300,7 +300,7 @@ class MatrixNArray(np.ndarray):
         ret[:] = np.eye(cls.N)
         return ret
 
-    def toMatrixSize(self, n):
+    def asMatrixSize(self, n):
         """ Return a an array of square matrixes of a given size based on the current matrix.
         If the size is smaller, keep the upper left square of the matrix
         If the size is bigger, the new entries will the same as the identity matrix
@@ -390,9 +390,9 @@ class MatrixNArray(np.ndarray):
             raise ValueError("The given order is not a permutation of 'xyz'")
 
         if self.ndim == 2:
-            self = self.toArray()
+            self = self.asArray()
 
-        self = self.toMatrixSize(3)
+        self = self.asMatrixSize(3)
         num_rotations = self.shape[0]
 
         # Step 0
@@ -501,7 +501,7 @@ class MatrixNArray(np.ndarray):
 
         from .quaternion import QuaternionArray
 
-        self = self.toMatrixSize(3)
+        self = self.asMatrixSize(3)
         num_rotations = self.shape[0]
 
         decision_matrix = np.empty((num_rotations, 4))
