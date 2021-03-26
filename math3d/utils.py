@@ -42,6 +42,8 @@ def arrayCompat(*args, **kwargs):
                 "Input number {0} has more than {1} dimensions".format(i, nDim)
             )
         ret.append(a)
+    if len(args) == 1:
+        return ret[0]
     return ret
 
 def asarray(ary):
