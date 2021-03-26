@@ -209,6 +209,16 @@ class MatrixN(np.ndarray):
         """
         return self.asArray().asTranslationArray()[0]
 
+    def asTransform(self):
+        """ Convert this matrix to a Transform
+
+        Returns
+        -------
+        Transform:
+            The converted matrix
+        """
+        return self.asArray().asTransformArray()[0]
+
     def flattened(self):
         return self.reshape(self.N**2)
 
@@ -319,7 +329,7 @@ class MatrixNArray(np.ndarray):
         typ = MATRIX_ARRAY_BY_SIZE[n]
         ret = typ.eye(len(self))
         n = min(n, self.N)
-        ret[:, :n] = self[:, :n]
+        ret[:, :n, :n] = self[:, :n, :n]
         return ret
 
     def append(self, value):
