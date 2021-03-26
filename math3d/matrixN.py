@@ -22,6 +22,7 @@ class MatrixN(np.ndarray):
             raise ValueError(
                 "Initializer for Matrix{0} must be of length {0}".format(cls.N)
             )
+        ary = ary.reshape((cls.N, cls.N))
         return ary.view(cls)
 
     @classmethod
@@ -207,6 +208,9 @@ class MatrixN(np.ndarray):
             The translation part of the matrix
         """
         return self.asArray().asTranslationArray()[0]
+
+    def flattened(self):
+        return self.reshape(self.N**2)
 
 
 class MatrixNArray(np.ndarray):
@@ -662,6 +666,9 @@ class MatrixNArray(np.ndarray):
         from .transformation import TransformationArray
         t, r, s = self.decompose()
         return TransformationArray.fromParts(translation=t, rotation=r, scale=s)
+
+    def flattened(self):
+        return self.reshape((-1, self.N**2))
 
 
 # Register the default sizes of array dynamically
