@@ -78,6 +78,20 @@ class VectorN(np.ndarray):
         """
         return np.sqrt(self.lengthSquared())
 
+    def normal(self):
+        """ Return the normalized vector
+
+        Returns
+        -------
+        VectorN:
+            The normalized vector
+        """
+        return self.asArray().normal()[0]
+
+    def normalize(self):
+        """ Normalize the vector in-place """
+        self /= self.length()
+
     @classmethod
     def ones(cls):
         """ Alternate constructor to build a vector of all ones """
@@ -130,6 +144,24 @@ class VectorN(np.ndarray):
         if typ is None:
             return ret
         return ret.view(typ)
+
+    def dot(self, other):
+        other = asarray(other)
+        if isinstance(other, VectorN):
+            if self.N != other.N:
+                raise TypeError(
+                    "Cannot compute the dot of vectors with different sizes"
+                )
+            return np.dot(self, other)
+        elif isinstance(other, VectorNArray):
+            if self.N != other.N:
+                raise TypeError(
+                    "Cannot compute the dot of vectors with different sizes"
+                )
+            return np.einsum("ij, ij -> i", self.asArray(), other)
+        raise TypeError(
+            "Cannot dot a VectorNArray with the given type"
+        )
 
     def __mul__(self, other):
         other = asarray(other)
@@ -282,17 +314,17 @@ class VectorNArray(np.ndarray):
         return np.sqrt(self.lengthSquared())
 
     def normal(self):
-        """ Return the normalized quaternions
+        """ Return the normalized vectors
 
         Returns
         -------
-        QuaternionArray:
-            The normalized quaternions
+        VectorNArray:
+            The normalized vectors
         """
         return self / self.length()[..., None]
 
     def normalize(self):
-        """ Normalize the quaternions in-place """
+        """ Normalize the vectors in-place """
         self /= self.length()[..., None]
 
     @classmethod
@@ -384,6 +416,20 @@ class VectorNArray(np.ndarray):
         if typ is None:
             return ret
         return ret.view(typ)
+
+    def dot(self, other):
+        other = asarray(other)
+        if isinstance(other, VectorNArray):
+            if other.N != self.N:
+                raise TypeError("Can't dot vectors of different length")
+            return np.einsum("...ij,...ij->...i", self, other)
+        elif isinstance(other, VectorN):
+            if other.N != self.N:
+                raise TypeError("Can't dot vectors of different length")
+            return np.dot(self, other)
+        raise TypeError(
+            "Cannot dot a VectorNArray with the given type"
+        )
 
     def __mul__(self, other):
         other = asarray(other)
