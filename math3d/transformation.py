@@ -327,7 +327,7 @@ class TransformationArray(np.ndarray):
             looks *= -1
             ups *= -1
 
-        rots = Matrix4.lookAts(looks, ups, axis=axis).asQuaternionArray()
+        rots = Matrix3Array.lookAts(looks, ups, axis=axis).asQuaternionArray()
 
         out = cls()
         out.rotation = rots

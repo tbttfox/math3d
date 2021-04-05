@@ -572,9 +572,9 @@ class MatrixNArray(np.ndarray):
         axis = axis.lower()
 
         looks = looks.normal()
-        sides = np.cross(looks, ups.normal())
+        sides = looks.cross(ups.normal())
         sides.normalize()
-        ups = np.cross(sides, looks)
+        ups = sides.cross(looks)
         ups.normalize()
 
         if axis.startswith("-"):

@@ -125,7 +125,11 @@ class VectorN(np.ndarray):
         VectorN:
             The result of the cross product
         """
-        return np.cross(self, other)
+        ret = np.cross(self, other)
+        typ = self.getReturnType(ret.shape)
+        if typ is None:
+            return ret
+        return ret.view(typ)
 
     def __mul__(self, other):
         other = asarray(other)
@@ -375,7 +379,11 @@ class VectorNArray(np.ndarray):
             The result of the per-row cross product
         """
         other = arrayCompat(other)
-        return np.cross(self, other)
+        ret = np.cross(self, other)
+        typ = self.getReturnType(ret.shape)
+        if typ is None:
+            return ret
+        return ret.view(typ)
 
     def __mul__(self, other):
         other = asarray(other)
