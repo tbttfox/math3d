@@ -31,7 +31,7 @@ def arrayCompat(*args, **kwargs):
     for i, a in enumerate(args):
         a = asarray(a)
         if a.ndim < nDim:
-            newShape = pre + list(a.shape)[:-nDim]
+            newShape = (pre + list(a.shape))[-nDim:]
             a = a.reshape(newShape)
             if hasattr(a, 'getReturnType'):
                 newTyp = a.getReturnType(newShape)

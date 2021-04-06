@@ -224,8 +224,10 @@ class MatrixN(np.ndarray):
 
 
 class MatrixNArray(np.ndarray):
-    def __new__(cls, inputArray):
-        ary = np.asarray(inputArray, dtype=float)
+    def __new__(cls, input_array=None):
+        if input_array is None:
+            input_array = np.array([])
+        ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, cls.N, cls.N))
         return ary.view(cls)
 
@@ -332,27 +334,49 @@ class MatrixNArray(np.ndarray):
         ret[:, :n, :n] = self[:, :n, :n]
         return ret
 
-    def append(self, value):
-        """ Append an item to the end of this array
+    def appended(self, value):
+        """ Return a copy of the array with the value appended
+        Quaternion and Euler types will be converted to Matrix3
+        All other types will be appended as-is
 
         Parameters
         ----------
         value: iterable
             An iterable to be appended as-is to the end of this array
         """
-        self.resize((len(self) + 1, self.N, self.N))
-        self[-1] = value
+        newShp = list(self.shape)
+        newShp[0] += 1
+        ret = np.resize(self, newShp)
 
-    def extend(self, value):
-        """ Extend this array with the given items
+        from .euler import Euler
+        from .quaternion import Quaternion
+        if isinstance(value, (Euler, MatrixN)):
+            value = value.asMatrix()
+
+        ret[-1] = value
+        return ret
+
+    def extended(self, value):
+        """ Return a copy of the array extended with the given values
+        Quaternion and Euler types will be converted to Matrix3
+        All other types will be appended as-is
 
         Parameters
         ----------
         value: iterable
-            An iterable to be added to the end of this array
+            An iterable to be appended as-is to the end of this array
         """
-        self.resize((len(self) + len(value), self.N, self.N))
-        self[-len(value):] = value
+        newShp = list(self.shape)
+        newShp[0] += len(value)
+        ret = np.resize(self, newShp)
+
+        from .euler import EulerArray
+        from .quaternion import QuaternionArray
+        if isinstance(value, (EulerArray, QuaternionArray)):
+            value = value.asMatrixArray()
+
+        ret[-len(value):] = value
+        return ret
 
     def inverse(self):
         """ Return the inverse of the current matrixes

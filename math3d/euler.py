@@ -1,5 +1,4 @@
 import numpy as np
-from .utils import arrayCompat
 
 
 class Euler(np.ndarray):
@@ -7,7 +6,7 @@ class Euler(np.ndarray):
 
     Parameters
     ----------
-    inputArray : iterable, optional
+    input_array : iterable, optional
         The input value to create the euler array. It must be an iterable of length 3
         If not given, defaults to (0, 0, 0)
     order: str, optional
@@ -18,11 +17,11 @@ class Euler(np.ndarray):
         Whether the angles are given in degrees or radians. Defaults to False (radians)
     """
 
-    def __new__(cls, inputArray=None, order="xyz", degrees=False):
-        if inputArray is None:
+    def __new__(cls, input_array=None, order="xyz", degrees=False):
+        if input_array is None:
             ary = np.zeros(3)
         else:
-            ary = np.asarray(inputArray, dtype=float)
+            ary = np.asarray(input_array, dtype=float)
         if ary.size != 3:
             raise ValueError(
                 "Initializer for Vector{0} must be of length {0}".format(3)
@@ -152,7 +151,7 @@ class EulerArray(np.ndarray):
 
     Parameters
     ----------
-    inputArray : iterable
+    input_array : iterable
         The input value to create the euler array. It must be an iterable with a length
         multiple of 3
     order: str, optional
@@ -163,8 +162,10 @@ class EulerArray(np.ndarray):
         Whether the angles are given in degrees or radians. Defaults to False (radians)
     """
 
-    def __new__(cls, inputArray, order="xyz", degrees=False):
-        ary = np.asarray(inputArray, dtype=float)
+    def __new__(cls, input_array=None, order="xyz", degrees=False):
+        if input_array is None:
+            input_array = np.array([])
+        ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, 3))
         ret = ary.view(cls)
         order = order.lower()
@@ -267,43 +268,65 @@ class EulerArray(np.ndarray):
         """
         return cls(np.zeros((length, 3)))
 
-    def append(self, value):
-        """ Append an item to the end of this array
+    def appended(self, value):
+        """ Return a copy of the array with the value appended
         Euler types will be converted to match degrees or radians
+        Quaternion and Matrix types will be converted to Euler
         All other types will be appended as-is
 
         Parameters
         ----------
         value: iterable
-            A length-3 iterable to be appended to the end of this array
+            An iterable to be appended as-is to the end of this array
         """
+        newShp = list(self.shape)
+        newShp[0] += 1
+        ret = np.resize(self, newShp)
+
+        from .quaternion import Quaternion
+        from .matrixN import MatrixN
         if isinstance(value, Euler):
             if self.degrees and not value.degrees:
                 value = np.rad2deg(value)
             elif not self.degrees and value.degrees:
                 value = np.deg2rad(value)
+        elif isinstance(value, Quaternion):
+            value = value.asEuler(order=self.order, degrees=self._degrees)
+        elif isinstance(value, MatrixN):
+            value = value.asEuler(order=self.order, degrees=self._degrees)
 
-        self.resize((len(self) + 1, 3))
-        self[-1] = value
+        ret[-1] = value
+        return ret
 
-    def extend(self, value):
-        """ Extend this array with the given items
+    def extended(self, value):
+        """ Return a copy of the array extended with the given values
         Euler types will be converted to match degrees or radians
+        Matrix and Quaternion types will be converted to Euler
+        All other types will be appended as-is
 
         Parameters
         ----------
         value: iterable
-            A multiple-of-length-3 iterable to be appended to the end of this array
+            An iterable to be appended as-is to the end of this array
         """
-        value = arrayCompat(value)
+        from .quaternion import QuaternionArray
+        from .matrixN import MatrixNArray
+        newShp = list(self.shape)
+        newShp[0] += len(value)
+        ret = np.resize(self, newShp)
+
         if isinstance(value, EulerArray):
             if self.degrees and not value.degrees:
-                value = np.rad2deg(value)
+                value = value.asDegrees()
             elif not self.degrees and value.degrees:
-                value = np.deg2rad(value)
+                value = value.asRadians()
+        elif isinstance(value, QuaternionArray):
+            value = value.asEulerArray(order=self.order, degrees=self._degrees)
+        elif isinstance(value, MatrixNArray):
+            value = value.asEulerArray(order=self.order, degrees=self._degrees)
 
-        self.resize((len(self) + len(value), 3))
-        self[-len(value):] = value
+        ret[-len(value):] = value
+        return ret
 
     def asQuaternionArray(self):
         """ Convert this EulerArray object to a QuaternionArray

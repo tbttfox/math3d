@@ -143,7 +143,7 @@ class VectorN(np.ndarray):
         typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
-        return ret.view(typ)
+        return ret.view(typ).copy()
 
     def dot(self, other):
         other = asarray(other)
@@ -254,7 +254,9 @@ class VectorN(np.ndarray):
 
 
 class VectorNArray(np.ndarray):
-    def __new__(cls, input_array):
+    def __new__(cls, input_array=None):
+        if input_array is None:
+            input_array = np.array([])
         ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, cls.N))
         return ary.view(cls)
@@ -328,13 +330,24 @@ class VectorNArray(np.ndarray):
         self /= self.length()[..., None]
 
     @classmethod
+    def zeros(cls, length):
+        """ Alternate constructor to build a vector of all zeros
+
+        Parameters
+        ----------
+        length: int
+            The number of vectors to build
+        """
+        return cls(np.zeros((length, cls.N)))
+
+    @classmethod
     def ones(cls, length):
         """ Alternate constructor to build a vector of all ones
 
         Parameters
         ----------
         length: int
-            The number of matrices to build
+            The number of vectors to build
         """
         return cls(np.ones((length, cls.N)))
 
@@ -375,27 +388,51 @@ class VectorNArray(np.ndarray):
         ret[:, :n] = self[:, :n]
         return ret
 
-    def append(self, v):
-        """ Append an item to the end of this array
+    def appended(self, value):
+        """ Return a copy of the array with the value appended
 
         Parameters
         ----------
         value: iterable
             An iterable to be appended as-is to the end of this array
         """
-        self.resize((len(self) + 1, self.N))
-        self[-1] = v
+        newShp = list(self.shape)
+        newShp[0] += 1
+        ret = np.resize(self, newShp)
+        ret[-1] = value
+        return ret
 
-    def extend(self, v):
-        """ Extend this array with the given items
+    def extended(self, value):
+        """ Return a copy of the array extended with the given values
 
         Parameters
         ----------
         value: iterable
-            An iterable to be added to the end of this array
+            An iterable to be appended as-is to the end of this array
         """
-        self.resize((len(self) + len(v), self.N))
-        self[-len(v) :] = v
+        newShp = list(self.shape)
+        newShp[0] += len(value)
+        ret = np.resize(self, newShp)
+        ret[-len(value):] = value
+        return ret
+
+    def inserted(self, idx, value):
+        """ Return a copy of the array with the value inserted at the given position
+
+        Parameters
+        ----------
+        idx: int
+            The index where value will be inserted
+        value: iterable
+            An iterable to be appended as-is to the end of this array
+        """
+        _, value = arrayCompat(self, value)
+        newShp = list(self.shape)
+        newShp[0] += len(value)
+        ret = np.resize(self, newShp)
+        ret[len(value) + idx:] = self[idx:]
+        ret[idx: len(value) + idx] = value
+        return ret.view(type(self))
 
     def cross(self, other):
         """ Take Cross product with another array of vector
@@ -488,11 +525,10 @@ class VectorNArray(np.ndarray):
         typ = type(self)
         if not isinstance(other, typ):
             other = other.view(typ)
-
-        return np.acos(self.normal() * other.normal())
+        return np.arccos(self.normal() * other.normal())
 
     @classmethod
-    def planeNormals(cls, centers, pos1, pos2, normalize=False):
+    def planeNormals(cls, centers, pos1, pos2, normalize=False, fallback=True):
         """ Convenience constructor to build plane normals based off 3 sets of points
         Simply cross the "spoke" vectors from the centers
             (pos1-centers) x (pos2-centers)
@@ -508,6 +544,10 @@ class VectorNArray(np.ndarray):
             The array of first axis points
         pos2: vector3Array
             The array of second axis points
+        normalize: bool
+            Whether to normalize the output
+        fallback: bool
+            Have zero-length vectors fall back on valid values
         """
         centers, pos1, pos2 = arrayCompat(centers, pos1, pos2)
         centers, pos1, pos2 = toType(VECTOR_ARRAY_BY_SIZE[3], centers, pos1, pos2)
@@ -516,6 +556,33 @@ class VectorNArray(np.ndarray):
         vec2 = (pos2 - centers).normal()
 
         ret = np.cross(vec1, vec2)
+
+        if fallback:
+            # Now that we have the normals calculated, we figure out how to fall back
+            # We do this by finding where the numbers flip from zero to 1 and vice versa
+            # then we group the flips together in pairs, and that makes the ranges where
+            # there are consecutive zeros. Then we copy the fallbacks
+
+            # Yeah, this is way overcomplicating things
+
+            # Find where adjacent lengths flip from zero to nonzero and vice-versa
+            l2 = ret.lengthSquared()
+            x = np.isclose(l2, 0.0)
+            flips = x[1:] != x[:-1]
+
+            # Include the beginning and end if they were zeros
+            flops = np.zeros(len(x) + 1)
+            flops[1:-1] = flips
+            flops[0] = x[0]
+            flops[-1] = x[-1]
+
+            # Group the flops by pairs. Those are the ranges of zeros
+            # Set the ranges of zeros to the item before each zero range
+            flops = np.where(flops)[0]
+            flops = flops.reshape((-1, 2))
+            for s, e in flops:
+                ret[s: e] = ret[s-1][None, :]
+
         if normalize:
             ret.normalize()
         return ret
@@ -569,7 +636,7 @@ class VectorNArray(np.ndarray):
         percent = arrayCompat(percent, nDim=1)
         return ((other - self) * percent[..., None]) + self
 
-    def parallelTransport(self, upv, inverse=False):
+    def parallelTransport(self, upv=None, inverse=False):
         """ Take a normal and transport it along these ordered points.
         When 3 adjacent points aren't in a straight line, rotate the normal
         by the angle of those points
@@ -587,10 +654,14 @@ class VectorNArray(np.ndarray):
             An array of normals per point
         """
         from .quaternion import QuaternionArray
-
         adjVecs = self[1:] - self[:-1]
+
         # get the rotation and axis for all points except the first and last
         binorms = adjVecs[1:].cross(adjVecs[:-1])
+
+        if upv is None:
+            upv = adjVecs[0].cross(binorms[0]).normal()
+
         angles = adjVecs[1:].angle(adjVecs[:-1])
         if inverse:
             angles *= -1
@@ -599,7 +670,7 @@ class VectorNArray(np.ndarray):
         # The first upvector is the given value
         out = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self))
         out[0] = upv
-        for i in range(len(self) - 1):
+        for i in range(len(self) - 2):
             out[i + 1] = out[i] * quats[i]
 
         # The last upvector is a repeat of the previous one

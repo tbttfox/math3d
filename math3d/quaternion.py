@@ -219,7 +219,9 @@ class Quaternion(np.ndarray):
 class QuaternionArray(np.ndarray):
     """ An array of Quaternion objects """
 
-    def __new__(cls, input_array):
+    def __new__(cls, input_array=None):
+        if input_array is None:
+            input_array = np.array([])
         ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, 4))
         return ary.view(cls)
@@ -358,27 +360,49 @@ class QuaternionArray(np.ndarray):
         """
         return cls(np.zeros((length, 4)))
 
-    def append(self, v):
-        """ Append an item to the end of this array
+    def appended(self, value):
+        """ Return a copy of the array with the value appended
+        Euler and Matrix types will be converted to Quaternions
+        All other types will be appended as-is
 
         Parameters
         ----------
         value: iterable
             An iterable to be appended as-is to the end of this array
         """
-        self.resize((len(self) + 1, 4))
-        self[-1] = v
+        newShp = list(self.shape)
+        newShp[0] += 1
+        ret = np.resize(self, newShp)
 
-    def extend(self, v):
-        """ Extend this array with the given items
+        from .euler import Euler
+        from .matrixN import MatrixN
+        if isinstance(value, (Euler, MatrixN)):
+            value = value.asQuaternion()
+
+        ret[-1] = value
+        return ret
+
+    def extended(self, value):
+        """ Return a copy of the array extended with the given values
+        Euler and Matrix types will be converted to Quaternions
+        All other types will be appended as-is
 
         Parameters
         ----------
         value: iterable
-            An iterable to be added to the end of this array
+            An iterable to be appended as-is to the end of this array
         """
-        self.resize((len(self) + len(v), 4))
-        self[-len(v):] = v
+        newShp = list(self.shape)
+        newShp[0] += len(value)
+        ret = np.resize(self, newShp)
+
+        from .euler import EulerArray
+        from .matrixN import MatrixNArray
+        if isinstance(value, (EulerArray, MatrixNArray)):
+            value = value.asQuaternionArray()
+
+        ret[-len(value):] = value
+        return ret
 
     @classmethod
     def alignedRotations(cls, axisName, angles, degrees=False):

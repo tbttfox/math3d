@@ -126,6 +126,8 @@ class Transformation(np.ndarray):
 
 class TransformationArray(np.ndarray):
     def __new__(cls, input_array=None):
+        if input_array is None:
+            input_array = np.array([])
         ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, 10))
         return ary.view(cls)
@@ -264,6 +266,34 @@ class TransformationArray(np.ndarray):
         """
         return self[None, ...]
 
+    def appended(self, value):
+        """ Return a copy of the array with the value appended
+
+        Parameters
+        ----------
+        value: iterable
+            An iterable to be appended as-is to the end of this array
+        """
+        newShp = list(self.shape)
+        newShp[0] += 1
+        ret = np.resize(self, newShp)
+        ret[-1] = value
+        return ret
+
+    def extended(self, value):
+        """ Return a copy of the array extended with the given values
+
+        Parameters
+        ----------
+        value: iterable
+            An iterable to be appended as-is to the end of this array
+        """
+        newShp = list(self.shape)
+        newShp[0] += len(value)
+        ret = np.resize(self, newShp)
+        ret[-len(value):] = value
+        return ret
+
     @property
     def translation(self):
         return Vector3Array(self[:, 7:])
@@ -305,22 +335,43 @@ class TransformationArray(np.ndarray):
 
         return tranArray
 
+
     @classmethod
-    def lookAts(cls, positions, targets, normals, axis="xy", negativeSide=False):
-        """Alternate constructor to create a Transform from given positions
+    def chain(cls, positions, targets=None, normals=None, axis="xy", negativeSide=False):
+        """Alternate constructor to create a chain of transforms based on a set of positions.
+        If no extra information is given, they will point at each other down the chain.
+        Optionally, you can provide aim targes and upvectors to orient them.
 
-        Args:
-            positions(Vector3Array): The transform translation and reference point
-            targets(Vector3Array): The pointing direction of first axis
-            normals(Vector3Array): The normal direction of the second axis
-            axis(string): axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
-            negativeSide(bool): Use mirror method to inverse the transformation (negative scaling or inversed rotation)
-                mirror method can be set globally using setMirrorMethod()
+        Parameters
+        ----------
+        positions: Vector3Array
+            The transform translation and reference point
+        targets: Vector3Array
+            The pointing direction of first axis
+        normals: Vector3Array
+            The normal direction of the second axis
+        axis: string
+            axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
+        negativeSide: bool
+            Use mirror method to inverse the transformation (negative scaling or inversed rotation)
+            mirror method can be set globally using setMirrorMethod()
 
-        Returns:
-            Transform: the resulting transformation
+        Returns
+        -------
+        Transformation:
+            the resulting transformation
         """
+        if targets is None:
+            targets = np.roll(positions, -1, axis=0)
+            targets[-1] = (2 * positions[-1]) - positions[-2]
+
         looks = targets - positions
+        if normals is None or len(normals) != len(positions):
+            upv = None
+            if normals:
+                upv = normals[0].normal()
+            normals = positions.parallelTransport(upv)
+
         ups = normals.normal()
 
         if bool(negativeSide):
@@ -329,7 +380,7 @@ class TransformationArray(np.ndarray):
 
         rots = Matrix3Array.lookAts(looks, ups, axis=axis).asQuaternionArray()
 
-        out = cls()
+        out = cls.eye(len(positions))
         out.rotation = rots
         out.translation = positions
         return out

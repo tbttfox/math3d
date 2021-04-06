@@ -1,0 +1,53 @@
+# OS
+*.BAK
+
+# python
+*.py[cod]
+
+# C
+*.so
+
+# Sublime
+*.sublime-*
+
+# PyCharm
+.idea/
+.idea
+
+# PyPi
+*.egg
+*.egg-info
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+pip-log.txt
+dist/
+
+# Coverage
+.coverage
+.tox
+nosetests.xml
+
+# Complexity
+output/*.html
+output/*/index.html
+
+# Sphinx
+docs
+
+# Cookie Cutter
+output/
+
+# Pillar
+*version.txt
+*hash.txt
+
+# /studio
+studio/tools/tools_index.json
