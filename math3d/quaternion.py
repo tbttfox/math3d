@@ -372,7 +372,7 @@ class QuaternionArray(np.ndarray):
         """
         newShp = list(self.shape)
         newShp[0] += 1
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
 
         from .euler import Euler
         from .matrixN import MatrixN
@@ -394,7 +394,7 @@ class QuaternionArray(np.ndarray):
         """
         newShp = list(self.shape)
         newShp[0] += len(value)
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
 
         from .euler import EulerArray
         from .matrixN import MatrixNArray

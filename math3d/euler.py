@@ -281,7 +281,7 @@ class EulerArray(np.ndarray):
         """
         newShp = list(self.shape)
         newShp[0] += 1
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
 
         from .quaternion import Quaternion
         from .matrixN import MatrixN
@@ -313,7 +313,7 @@ class EulerArray(np.ndarray):
         from .matrixN import MatrixNArray
         newShp = list(self.shape)
         newShp[0] += len(value)
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
 
         if isinstance(value, EulerArray):
             if self.degrees and not value.degrees:

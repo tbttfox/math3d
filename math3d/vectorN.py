@@ -398,7 +398,7 @@ class VectorNArray(np.ndarray):
         """
         newShp = list(self.shape)
         newShp[0] += 1
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
         ret[-1] = value
         return ret
 
@@ -412,7 +412,7 @@ class VectorNArray(np.ndarray):
         """
         newShp = list(self.shape)
         newShp[0] += len(value)
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
         ret[-len(value):] = value
         return ret
 
@@ -429,7 +429,7 @@ class VectorNArray(np.ndarray):
         _, value = arrayCompat(self, value)
         newShp = list(self.shape)
         newShp[0] += len(value)
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
         ret[len(value) + idx:] = self[idx:]
         ret[idx: len(value) + idx] = value
         return ret.view(type(self))
@@ -636,7 +636,7 @@ class VectorNArray(np.ndarray):
         percent = arrayCompat(percent, nDim=1)
         return ((other - self) * percent[..., None]) + self
 
-    def parallelTransport(self, upv=None, inverse=False):
+    def parallelTransport(self, upv=None, inverse=False, endTransform=False):
         """ Take a normal and transport it along these ordered points.
         When 3 adjacent points aren't in a straight line, rotate the normal
         by the angle of those points
@@ -647,6 +647,8 @@ class VectorNArray(np.ndarray):
             The single starting up-vector
         inverse: bool
             Whether to invert the rotation for flipping
+        endTransform: bool
+            Whether to duplicate the last vector
 
         Returns
         -------
@@ -668,13 +670,18 @@ class VectorNArray(np.ndarray):
         quats = QuaternionArray.axisAngle(binorms, angles)
 
         # The first upvector is the given value
-        out = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self))
+        if endTransform:
+            out = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self))
+        else:
+            out = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self) - 1)
         out[0] = upv
         for i in range(len(self) - 2):
             out[i + 1] = out[i] * quats[i]
 
-        # The last upvector is a repeat of the previous one
-        out[-1] = out[-2]
+        if endTransform:
+            # The last upvector is a repeat of the previous one
+            out[-1] = out[-2]
+
         return out
 
 

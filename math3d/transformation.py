@@ -185,7 +185,9 @@ class TransformationArray(np.ndarray):
 
         count = [len(i) for i in (translation, rotation, scale) if i is not None]
         if not count:
-            raise ValueError("Nothing passed to the .fromParts constructor. Cannot infer length")
+            raise ValueError(
+                "Nothing passed to the .fromParts constructor. Cannot infer length"
+            )
 
         count = sorted(set(count))
         if len(count) == 2:
@@ -276,7 +278,7 @@ class TransformationArray(np.ndarray):
         """
         newShp = list(self.shape)
         newShp[0] += 1
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
         ret[-1] = value
         return ret
 
@@ -290,7 +292,7 @@ class TransformationArray(np.ndarray):
         """
         newShp = list(self.shape)
         newShp[0] += len(value)
-        ret = np.resize(self, newShp)
+        ret = np.resize(self, newShp).view(type(self))
         ret[-len(value):] = value
         return ret
 
@@ -335,37 +337,67 @@ class TransformationArray(np.ndarray):
 
         return tranArray
 
-
     @classmethod
-    def chain(cls, positions, targets=None, normals=None, axis="xy", negativeSide=False):
+    def chain(
+        cls,
+        positions,
+        targets=None,
+        normals=None,
+        axis="xy",
+        negativeSide=False,
+        endTransform=True,
+    ):
         """Alternate constructor to create a chain of transforms based on a set of positions.
         If no extra information is given, they will point at each other down the chain.
         Optionally, you can provide aim targes and upvectors to orient them.
 
+        The orientation of the last point is not well defined if the targets and normals aren't given
+        So you can choose to either completely skip it, or use the orientation of the next-to-last point
+
         Parameters
         ----------
         positions: Vector3Array
-            The transform translation and reference point
-        targets: Vector3Array
-            The pointing direction of first axis
-        normals: Vector3Array
-            The normal direction of the second axis
+            The points that will be the translations of the output transforms
+        targets: Vector3Array, optional
+            The points in space that are the look-at targets of the output transforms
+            If not provided, then adjacent positions will be used as targets
+        normals: Vector3Array, Vector3, optional
+            The vectors that are pointing in the normal direction
+            If 1 normal is given, this normal will be run along the chain using
+            the Vector3Array.parallelTransport algorithm
+            If not provided at all, the first normal will be in the direction of the
+            first bend in the chain, or (0, 0, 1), and then parallelTransport-ed
         axis: string
-            axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
+            Axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
         negativeSide: bool
-            Use mirror method to inverse the transformation (negative scaling or inversed rotation)
-            mirror method can be set globally using setMirrorMethod()
+            Flip the transforms for use on a mirrored chain
+        endTransform: bool
+            Whether to include the guessed-at transformation of the last point in the output
 
         Returns
         -------
         Transformation:
             the resulting transformation
         """
+
+        """
+        If both targets and normals are None
+        or targets is None and normals is a single vector
+            deal with the endTransform value
+
+        if targets and/or normals are one less than positions
+            deal with the end transform value
+
+        if targets and/or normals are the same size as positions
+            return everything
+
+        if one of targets/normals is one less, and the other is the same size
+            return everything
+        """
         if targets is None:
             targets = np.roll(positions, -1, axis=0)
             targets[-1] = (2 * positions[-1]) - positions[-2]
 
-        looks = targets - positions
         if normals is None or len(normals) != len(positions):
             upv = None
             if normals:
@@ -374,6 +406,7 @@ class TransformationArray(np.ndarray):
 
         ups = normals.normal()
 
+        looks = targets - positions
         if bool(negativeSide):
             looks *= -1
             ups *= -1
@@ -383,7 +416,10 @@ class TransformationArray(np.ndarray):
         out = cls.eye(len(positions))
         out.rotation = rots
         out.translation = positions
-        return out
+        if endTransform:
+            return out
+        # Ignore the guessed-at last transformation
+        return out[:-1]
 
     def mirrored(self, axis="x"):
         """ Mirror the transformation along the given axis
