@@ -48,6 +48,16 @@ class Euler(np.ndarray):
         """
         return self[None, ...]
 
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
+
     @property
     def degrees(self):
         return self._degrees
@@ -208,6 +218,14 @@ class EulerArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(EulerArray, self).__getitem__(idx)
+        # If we're getting columns from the array
+        # Then we expect arrays back, not math3d types
+        if isinstance(idx, tuple):
+            # If we're getting multiple indices
+            # And the second index isn't a ":"
+            # Then we're getting
+            if len(idx) > 1 and idx[1] != slice(None, None, None):
+                return ret.view(np.ndarray)
         typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
@@ -327,6 +345,16 @@ class EulerArray(np.ndarray):
 
         ret[-len(value):] = value
         return ret
+
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
 
     def asQuaternionArray(self):
         """ Convert this EulerArray object to a QuaternionArray

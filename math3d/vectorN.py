@@ -58,6 +58,16 @@ class VectorN(np.ndarray):
         """
         return self[None, ...]
 
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
+
     def lengthSquared(self):
         """ Return the squared length of each vector
 
@@ -290,9 +300,16 @@ class VectorNArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(VectorNArray, self).__getitem__(idx)
+        # If we're getting columns from the array
+        # Then we expect arrays back, not math3d types
+        if isinstance(idx, tuple):
+            # If we're getting multiple indices And the second index isn't a ":"
+            # Then we're getting columns, and therefore want an ndarray
+            if len(idx) > 1 and idx[1] != slice(None, None, None):
+                return ret.view(np.ndarray)
         typ = self.getReturnType(ret.shape)
         if typ is None:
-            return ret
+            return ret.view(np.ndarray)
         return ret.view(typ)
 
     def lengthSquared(self):
@@ -387,6 +404,16 @@ class VectorNArray(np.ndarray):
         n = min(n, self.N)
         ret[:, :n] = self[:, :n]
         return ret
+
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
 
     def appended(self, value):
         """ Return a copy of the array with the value appended

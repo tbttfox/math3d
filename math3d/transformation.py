@@ -3,7 +3,7 @@ from .vectorN import Vector3, Vector3Array
 from .quaternion import Quaternion, QuaternionArray
 from .matrixN import Matrix4, Matrix4Array, Matrix3Array
 from .euler import Euler, EulerArray
-from .utils import asarray
+from .utils import asarray, arrayCompat
 
 
 class Transformation(np.ndarray):
@@ -71,7 +71,7 @@ class Transformation(np.ndarray):
         ret = super(Transformation, self).__getitem__(idx)
         typ = self.getReturnType(ret.shape)
         if typ is None:
-            return ret
+            return ret.view(np.ndarray)
         return ret.view(typ)
 
     def asMatrix(self):
@@ -80,6 +80,16 @@ class Transformation(np.ndarray):
         rot = np.dot(np.diag(self.scale), self.rotation.asMatrix())
         ret[:3, :3] = rot
         return ret
+
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
 
     @classmethod
     def partCheck(cls, translation=None, rotation=None, scale=None):
@@ -255,7 +265,7 @@ class TransformationArray(np.ndarray):
         ret = super(TransformationArray, self).__getitem__(idx)
         typ = self.getReturnType(ret.shape)
         if typ is None:
-            return ret
+            return ret.view(np.ndarray)
         return ret.view(typ)
 
     def asArray(self):
@@ -267,6 +277,16 @@ class TransformationArray(np.ndarray):
             The current object up-cast into a length-1 array
         """
         return self[None, ...]
+
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
 
     def appended(self, value):
         """ Return a copy of the array with the value appended
@@ -338,88 +358,97 @@ class TransformationArray(np.ndarray):
         return tranArray
 
     @classmethod
-    def chain(
+    def lookAts(
         cls,
         positions,
-        targets=None,
-        normals=None,
+        looks,
+        normals,
         axis="xy",
         negativeSide=False,
-        endTransform=True,
     ):
-        """Alternate constructor to create a chain of transforms based on a set of positions.
-        If no extra information is given, they will point at each other down the chain.
-        Optionally, you can provide aim targes and upvectors to orient them.
-
-        The orientation of the last point is not well defined if the targets and normals aren't given
-        So you can choose to either completely skip it, or use the orientation of the next-to-last point
+        """
+        Make an array of vector-oriented Transformations
+        positions, looks, and normals must all have the same length, or broadcast
 
         Parameters
         ----------
         positions: Vector3Array
             The points that will be the translations of the output transforms
-        targets: Vector3Array, optional
-            The points in space that are the look-at targets of the output transforms
-            If not provided, then adjacent positions will be used as targets
-        normals: Vector3Array, Vector3, optional
-            The vectors that are pointing in the normal direction
-            If 1 normal is given, this normal will be run along the chain using
-            the Vector3Array.parallelTransport algorithm
-            If not provided at all, the first normal will be in the direction of the
-            first bend in the chain, or (0, 0, 1), and then parallelTransport-ed
+        looks: Vector3Array
+            The vectors that the main axis will look along per transform
+        normals: Vector3Array
+            The vectors that are pointing in the normal direction per transform
+        axis: string
+            Axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
+        negativeSide: bool
+            Flip the transforms for use on a mirrored chain
+
+        Returns
+        -------
+        TransformationArray:
+            The resulting transformations
+        """
+        positions, looks, normals = arrayCompat(positions, looks, normals)
+        normals = normals.normal()
+        looks = looks.normal()
+        if bool(negativeSide):
+            looks *= -1
+            normals *= -1
+
+        rots = Matrix3Array.lookAts(looks, normals, axis=axis).asQuaternionArray()
+
+        out = cls.eye(len(positions))
+        out.rotation = rots
+        out.translation = positions
+        return out
+
+    @classmethod
+    def chain(
+        cls,
+        positions,
+        normal=None,
+        axis="xy",
+        negativeSide=False,
+        endTransform=True,
+    ):
+        """Alternate constructor to create a chain of transforms based on a set of positions.
+
+        The orientation of the last point is not well defined. So you can choose to either
+        completely skip it, or re-use the orientation of the next-to-last point
+
+        Parameters
+        ----------
+        positions: Vector3Array
+            The points that will be the translations of the output transforms
+        normal: Vector3, optional
+            The normal vector for the first position. Subsequent normals will be created
+            using Vector3.parallelTransport.
+            If not given, the value Vector3((0, 0, 1)) will be used
         axis: string
             Axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
         negativeSide: bool
             Flip the transforms for use on a mirrored chain
         endTransform: bool
-            Whether to include the guessed-at transformation of the last point in the output
+            Whether to include the guessed-at orientation of the last point in the output
 
         Returns
         -------
-        Transformation:
-            the resulting transformation
+        TransformationArray:
+            The resulting transformations
         """
+        looks = positions[1:] - positions[:-1]
 
-        """
-        If both targets and normals are None
-        or targets is None and normals is a single vector
-            deal with the endTransform value
+        if normal is None:
+            normal = Vector3((0, 0, 1))
+        # don't calculate the endTransform for the parallelTransport
+        normals = positions.parallelTransport(normal, endTransform=False)
 
-        if targets and/or normals are one less than positions
-            deal with the end transform value
-
-        if targets and/or normals are the same size as positions
-            return everything
-
-        if one of targets/normals is one less, and the other is the same size
-            return everything
-        """
-        if targets is None:
-            targets = np.roll(positions, -1, axis=0)
-            targets[-1] = (2 * positions[-1]) - positions[-2]
-
-        if normals is None or len(normals) != len(positions):
-            upv = None
-            if normals:
-                upv = normals[0].normal()
-            normals = positions.parallelTransport(upv)
-
-        ups = normals.normal()
-
-        looks = targets - positions
-        if bool(negativeSide):
-            looks *= -1
-            ups *= -1
-
-        rots = Matrix3Array.lookAts(looks, ups, axis=axis).asQuaternionArray()
-
-        out = cls.eye(len(positions))
-        out.rotation = rots
-        out.translation = positions
+        ret = cls.lookAts(positions[:-1], looks, normals, axis=axis, negativeSide=negativeSide)
         if endTransform:
-            return out
-        # Ignore the guessed-at last transformation
-        return out[:-1]
+            end = ret[-1].copy()
+            end.translation = positions[-1]
+            ret = ret.appended(end)
+        return ret
 
     def mirrored(self, axis="x"):
         """ Mirror the transformation along the given axis

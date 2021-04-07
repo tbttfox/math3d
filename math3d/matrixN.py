@@ -1,5 +1,5 @@
 import numpy as np
-from vectorN import VectorN, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
+from vectorN import VectorN, VectorNArray, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
 from .utils import arrayCompat
 
 
@@ -72,6 +72,16 @@ class MatrixN(np.ndarray):
         """
         return self[None, ...]
 
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
+
     def asMatrixSize(self, n):
         """ Return a square matrix of a given size based on the current matrix.
         If the size is smaller, keep the upper left square of the matrix
@@ -127,7 +137,14 @@ class MatrixN(np.ndarray):
             if other.N != self.N:
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
-            return np.dot(self.N, other.N)
+            return np.dot(self, other)
+
+        if isinstance(other, MatrixNArray):
+            if other.N != self.N:
+                msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
+                raise TypeError(msg.format(self.N, other.N))
+            aa = self.asArray()
+            return np.einsum('xij,xjk->xik', aa, other)
         return super(MatrixN, self).__mul__(other)
 
     def __imul__(self, other):
@@ -140,7 +157,7 @@ class MatrixN(np.ndarray):
             if other.N != self.N:
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
-            self[:] = np.dot(self.N, other.N)
+            self[:] = np.dot(self, other)
             return
         super(MatrixN, self).__imul__(other)
 
@@ -334,6 +351,16 @@ class MatrixNArray(np.ndarray):
         ret[:, :n, :n] = self[:, :n, :n]
         return ret
 
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
+
     def appended(self, value):
         """ Return a copy of the array with the value appended
         Quaternion and Euler types will be converted to Matrix3
@@ -391,6 +418,46 @@ class MatrixNArray(np.ndarray):
     def invert(self):
         """ Invert the matrices in-place """
         self[:] = np.linalg.inv(self)
+
+    def __mul__(self, other):
+        if isinstance(other, (VectorN, VectorNArray)):
+            msg = "Cannot multiply matrix*vector. You must multiply vector*matrix\n"
+            msg += "Make sure when you multiply it's in `child * parent * grandparent` order"
+            raise TypeError(msg)
+
+        if isinstance(other, MatrixN):
+            if other.N != self.N:
+                msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
+                raise TypeError(msg.format(self.N, other.N))
+            other = arrayCompat(other, nDim=3)
+            return np.einsum('xij,xjk->xik', self, other)
+
+        if isinstance(other, MatrixNArray):
+            if other.N != self.N:
+                msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
+                raise TypeError(msg.format(self.N, other.N))
+            return np.einsum('xij,xjk->xik', self, other)
+        return super(MatrixN, self).__mul__(other)
+
+    def __imul__(self, other):
+        if isinstance(other, (VectorN, VectorNArray)):
+            msg = "Cannot multiply matrix*vector. You must multiply vector*matrix\n"
+            msg += "Make sure when you multiply it's in `child * parent * grandparent` order"
+            raise TypeError(msg)
+
+        if isinstance(other, MatrixN):
+            if other.N != self.N:
+                msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
+                raise TypeError(msg.format(self.N, other.N))
+            other = arrayCompat(other, nDim=3)
+            self[:] = np.einsum('xij,xjk->xik', self, other)
+
+        if isinstance(other, MatrixNArray):
+            if other.N != self.N:
+                msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
+                raise TypeError(msg.format(self.N, other.N))
+            self[:] = np.einsum('xij,xjk->xik', self, other)
+        return super(MatrixN, self).__mul__(other)
 
     def asEulerArray(self, order="xyz", degrees=False):
         """ Convert the upper left 3x3 of these matrixes to Euler rotations

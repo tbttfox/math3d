@@ -115,6 +115,16 @@ class Quaternion(np.ndarray):
         """
         return self[None, ...]
 
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
+
     def lengthSquared(self):
         """ Return the squared length of the quaternion
 
@@ -123,7 +133,7 @@ class Quaternion(np.ndarray):
         float:
             The squared length of the quaternion
         """
-        return (self * self).sum()
+        return self.asArray().lengthSquared()[0]
 
     def length(self):
         """ Return the length of the quaternion
@@ -134,6 +144,20 @@ class Quaternion(np.ndarray):
             The length of the quaternion
         """
         return np.sqrt(self.lengthSquared())
+
+    def normal(self):
+        """ Return the normalized quaternion
+
+        Returns
+        -------
+        VectorN:
+            The normalized quaternion
+        """
+        return self.asArray().normal()[0]
+
+    def normalize(self):
+        """ Normalize the quaternion in-place """
+        self /= self.length()
 
     def __mul__(self, other):
         other = asarray(other)
@@ -310,6 +334,13 @@ class QuaternionArray(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(QuaternionArray, self).__getitem__(idx)
+        # If we're getting columns from the array
+        # Then we expect arrays back, not math3d types
+        if isinstance(idx, tuple):
+            # If we're getting multiple indices And the second index isn't a ":"
+            # Then we're getting columns, and therefore want an ndarray
+            if len(idx) > 1 and idx[1] != slice(None, None, None):
+                return ret.view(np.ndarray)
         typ = self.getReturnType(ret.shape)
         if typ is None:
             return ret
@@ -487,7 +518,7 @@ class QuaternionArray(np.ndarray):
         return v + uv + uuv
 
     def asMatrixArray(self):
-        """ Convert the quaternion to a 3x3 matrix array
+        """ Convert the quaternion array to a 3x3 matrix array
 
         Returns
         -------
@@ -549,6 +580,16 @@ class QuaternionArray(np.ndarray):
         """
         m = self.asMatrixArray()
         return m.asEulerArray(order=order, degrees=degrees)
+
+    def asNdArray(self):
+        """ Return this object as a regular numpy array
+
+        Returns
+        -------
+        ndarray:
+            The current object as a numpy array
+        """
+        return self.view(np.ndarray)
 
     def __mul__(self, other):
         other = arrayCompat(other)
