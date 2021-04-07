@@ -492,7 +492,7 @@ class VectorNArray(ArrayBase):
         vec1 = (pos1 - centers).normal()
         vec2 = (pos2 - centers).normal()
 
-        ret = np.cross(vec1, vec2)
+        ret = vec1.cross(vec2)
 
         if fallback:
             # Now that we have the normals calculated, we figure out how to fall back
