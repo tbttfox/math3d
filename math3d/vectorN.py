@@ -1,8 +1,9 @@
 import numpy as np
+from .base import MathBase, ArrayBase
 from .utils import arrayCompat, toType, asarray
 
 
-class VectorN(np.ndarray):
+class VectorN(MathBase):
     def __new__(cls, input_array=None):
         if input_array is None:
             ary = np.zeros(cls.N)
@@ -41,13 +42,6 @@ class VectorN(np.ndarray):
 
         return np.ndarray
 
-    def __getitem__(self, idx):
-        ret = super(VectorN, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
-        if typ is None:
-            return ret
-        return ret.view(typ)
-
     def asArray(self):
         """ Return the array type of this object
 
@@ -57,16 +51,6 @@ class VectorN(np.ndarray):
             The current object up-cast into a length-1 array
         """
         return self[None, ...]
-
-    def asNdArray(self):
-        """ Return this object as a regular numpy array
-
-        Returns
-        -------
-        ndarray:
-            The current object as a numpy array
-        """
-        return self.view(np.ndarray)
 
     def lengthSquared(self):
         """ Return the squared length of each vector
@@ -169,9 +153,7 @@ class VectorN(np.ndarray):
                     "Cannot compute the dot of vectors with different sizes"
                 )
             return np.einsum("ij, ij -> i", self.asArray(), other)
-        raise TypeError(
-            "Cannot dot a VectorNArray with the given type"
-        )
+        raise TypeError("Cannot dot a VectorNArray with the given type")
 
     def __mul__(self, other):
         other = asarray(other)
@@ -263,7 +245,7 @@ class VectorN(np.ndarray):
         return ((other - sa) * percent) + sa
 
 
-class VectorNArray(np.ndarray):
+class VectorNArray(ArrayBase):
     def __new__(cls, input_array=None):
         if input_array is None:
             input_array = np.array([])
@@ -297,20 +279,6 @@ class VectorNArray(np.ndarray):
             if shape[0] == cls.N:
                 return cls.itemType
         return np.ndarray
-
-    def __getitem__(self, idx):
-        ret = super(VectorNArray, self).__getitem__(idx)
-        # If we're getting columns from the array
-        # Then we expect arrays back, not math3d types
-        if isinstance(idx, tuple):
-            # If we're getting multiple indices And the second index isn't a ":"
-            # Then we're getting columns, and therefore want an ndarray
-            if len(idx) > 1 and idx[1] != slice(None, None, None):
-                return ret.view(np.ndarray)
-        typ = self.getReturnType(ret.shape)
-        if typ is None:
-            return ret.view(np.ndarray)
-        return ret.view(typ)
 
     def lengthSquared(self):
         """ Return the squared length of each vector
@@ -405,62 +373,6 @@ class VectorNArray(np.ndarray):
         ret[:, :n] = self[:, :n]
         return ret
 
-    def asNdArray(self):
-        """ Return this object as a regular numpy array
-
-        Returns
-        -------
-        ndarray:
-            The current object as a numpy array
-        """
-        return self.view(np.ndarray)
-
-    def appended(self, value):
-        """ Return a copy of the array with the value appended
-
-        Parameters
-        ----------
-        value: iterable
-            An iterable to be appended as-is to the end of this array
-        """
-        newShp = list(self.shape)
-        newShp[0] += 1
-        ret = np.resize(self, newShp).view(type(self))
-        ret[-1] = value
-        return ret
-
-    def extended(self, value):
-        """ Return a copy of the array extended with the given values
-
-        Parameters
-        ----------
-        value: iterable
-            An iterable to be appended as-is to the end of this array
-        """
-        newShp = list(self.shape)
-        newShp[0] += len(value)
-        ret = np.resize(self, newShp).view(type(self))
-        ret[-len(value):] = value
-        return ret
-
-    def inserted(self, idx, value):
-        """ Return a copy of the array with the value inserted at the given position
-
-        Parameters
-        ----------
-        idx: int
-            The index where value will be inserted
-        value: iterable
-            An iterable to be appended as-is to the end of this array
-        """
-        _, value = arrayCompat(self, value)
-        newShp = list(self.shape)
-        newShp[0] += len(value)
-        ret = np.resize(self, newShp).view(type(self))
-        ret[len(value) + idx:] = self[idx:]
-        ret[idx: len(value) + idx] = value
-        return ret.view(type(self))
-
     def cross(self, other):
         """ Take Cross product with another array of vector
 
@@ -491,9 +403,7 @@ class VectorNArray(np.ndarray):
             if other.N != self.N:
                 raise TypeError("Can't dot vectors of different length")
             return np.dot(self, other)
-        raise TypeError(
-            "Cannot dot a VectorNArray with the given type"
-        )
+        raise TypeError("Cannot dot a VectorNArray with the given type")
 
     def __mul__(self, other):
         other = asarray(other)
@@ -608,7 +518,7 @@ class VectorNArray(np.ndarray):
             flops = np.where(flops)[0]
             flops = flops.reshape((-1, 2))
             for s, e in flops:
-                ret[s: e] = ret[s-1][None, :]
+                ret[s:e] = ret[s - 1][None, :]
 
         if normalize:
             ret.normalize()
@@ -683,6 +593,7 @@ class VectorNArray(np.ndarray):
             An array of normals per point
         """
         from .quaternion import QuaternionArray
+
         adjVecs = self[1:] - self[:-1]
 
         # get the rotation and axis for all points except the first and last

@@ -4,9 +4,10 @@ from .quaternion import Quaternion, QuaternionArray
 from .matrixN import Matrix4, Matrix4Array, Matrix3Array
 from .euler import Euler, EulerArray
 from .utils import asarray, arrayCompat
+from .base import MathBase, ArrayBase
 
 
-class Transformation(np.ndarray):
+class Transformation(MathBase):
     def __new__(cls, input_array=None):
         if input_array is None:
             # Stored in SRT
@@ -67,29 +68,12 @@ class Transformation(np.ndarray):
 
         return np.ndarray
 
-    def __getitem__(self, idx):
-        ret = super(Transformation, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
-        if typ is None:
-            return ret.view(np.ndarray)
-        return ret.view(typ)
-
     def asMatrix(self):
         ret = Matrix4()
         ret[3, :3] = self.translation
         rot = np.dot(np.diag(self.scale), self.rotation.asMatrix())
         ret[:3, :3] = rot
         return ret
-
-    def asNdArray(self):
-        """ Return this object as a regular numpy array
-
-        Returns
-        -------
-        ndarray:
-            The current object as a numpy array
-        """
-        return self.view(np.ndarray)
 
     @classmethod
     def partCheck(cls, translation=None, rotation=None, scale=None):
@@ -134,7 +118,7 @@ class Transformation(np.ndarray):
         return ret
 
 
-class TransformationArray(np.ndarray):
+class TransformationArray(ArrayBase):
     def __new__(cls, input_array=None):
         if input_array is None:
             input_array = np.array([])
@@ -248,6 +232,17 @@ class TransformationArray(np.ndarray):
         lines[-1] = lines[-1] + "]"
         return "\n".join(lines)
 
+    def _convertToCompatibleType(self, value):
+        """ Convert a value to a type compatible with
+        Appending, extending, or inserting
+        """
+        from .matrixN import Matrix4, Matrix4Array
+        if isinstance(value, Matrix4Array):
+            return value.asTransformArray()
+        elif isinstance(value, Matrix4):
+            return value.asTransform()
+        return value
+
     @classmethod
     def getReturnType(cls, shape):
         if not shape:
@@ -261,13 +256,6 @@ class TransformationArray(np.ndarray):
                 return cls
         return np.ndarray
 
-    def __getitem__(self, idx):
-        ret = super(TransformationArray, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
-        if typ is None:
-            return ret.view(np.ndarray)
-        return ret.view(typ)
-
     def asArray(self):
         """ Return the array type of this object
 
@@ -277,44 +265,6 @@ class TransformationArray(np.ndarray):
             The current object up-cast into a length-1 array
         """
         return self[None, ...]
-
-    def asNdArray(self):
-        """ Return this object as a regular numpy array
-
-        Returns
-        -------
-        ndarray:
-            The current object as a numpy array
-        """
-        return self.view(np.ndarray)
-
-    def appended(self, value):
-        """ Return a copy of the array with the value appended
-
-        Parameters
-        ----------
-        value: iterable
-            An iterable to be appended as-is to the end of this array
-        """
-        newShp = list(self.shape)
-        newShp[0] += 1
-        ret = np.resize(self, newShp).view(type(self))
-        ret[-1] = value
-        return ret
-
-    def extended(self, value):
-        """ Return a copy of the array extended with the given values
-
-        Parameters
-        ----------
-        value: iterable
-            An iterable to be appended as-is to the end of this array
-        """
-        newShp = list(self.shape)
-        newShp[0] += len(value)
-        ret = np.resize(self, newShp).view(type(self))
-        ret[-len(value):] = value
-        return ret
 
     @property
     def translation(self):

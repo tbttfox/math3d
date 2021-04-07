@@ -24,7 +24,7 @@ def arrayCompat(*args, **kwargs):
         If the number of dimensions of an array is greater than maxDim
 
     """
-    nDim = kwargs.get('nDim', 2)
+    nDim = kwargs.get("nDim", 2)
 
     pre = [1] * nDim
     ret = []
@@ -33,7 +33,7 @@ def arrayCompat(*args, **kwargs):
         if a.ndim < nDim:
             newShape = (pre + list(a.shape))[-nDim:]
             a = a.reshape(newShape)
-            if hasattr(a, 'getReturnType'):
+            if hasattr(a, "getReturnType"):
                 newTyp = a.getReturnType(newShape)
                 a = a.view(newTyp)
 
@@ -46,6 +46,7 @@ def arrayCompat(*args, **kwargs):
         return ret[0]
     return ret
 
+
 def asarray(ary):
     """ Return a numpy array of the given object
     If it is already a numpy array type (or any of the math3d subclasses)
@@ -55,9 +56,8 @@ def asarray(ary):
         return np.asarray(ary)
     return ary
 
+
 def toType(typ, *args):
     """ Cast all the args to the given type, but only if needed """
     args = [asarray(a) for a in args]
     return [a if isinstance(a, typ) else a.view(typ) for a in args]
-
-

@@ -1,8 +1,9 @@
 import numpy as np
 from .utils import arrayCompat, asarray
+from .base import MathBase, ArrayBase
 
 
-class Quaternion(np.ndarray):
+class Quaternion(MathBase):
     """ A single quaternion object stored in xyzw order (scalar last) """
     def __new__(cls, input_array=None):
         if input_array is None:
@@ -98,13 +99,6 @@ class Quaternion(np.ndarray):
 
         return np.ndarray
 
-    def __getitem__(self, idx):
-        ret = super(Quaternion, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
-        if typ is None:
-            return ret
-        return ret.view(typ)
-
     def asArray(self):
         """ Return the array type of this object
 
@@ -114,16 +108,6 @@ class Quaternion(np.ndarray):
             The current object up-cast into a length-1 array
         """
         return self[None, ...]
-
-    def asNdArray(self):
-        """ Return this object as a regular numpy array
-
-        Returns
-        -------
-        ndarray:
-            The current object as a numpy array
-        """
-        return self.view(np.ndarray)
 
     def lengthSquared(self):
         """ Return the squared length of the quaternion
@@ -240,7 +224,7 @@ class Quaternion(np.ndarray):
         return QuaternionArray.axisAngle(axis[None, ...], [angle], degrees=degrees)[0]
 
 
-class QuaternionArray(np.ndarray):
+class QuaternionArray(ArrayBase):
     """ An array of Quaternion objects """
 
     def __new__(cls, input_array=None):
@@ -307,6 +291,18 @@ class QuaternionArray(np.ndarray):
     def w(self, val):
         self[:, 3] = val
 
+    def _convertToCompatibleType(self, value):
+        """ Convert a value to a type compatible with
+        Appending, extending, or inserting
+        """
+        from .matrixN import MatrixN, MatrixNArray
+        from .euler import Euler, EulerArray
+        if isinstance(value, (EulerArray, MatrixNArray)):
+            return value.asQuaternionArray()
+        elif isinstance(value, (Euler, MatrixN)):
+            return value.asQuaternion()
+        return value
+
     @classmethod
     def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
@@ -331,20 +327,6 @@ class QuaternionArray(np.ndarray):
             if shape[0] == 4:
                 return Quaternion
         return np.ndarray
-
-    def __getitem__(self, idx):
-        ret = super(QuaternionArray, self).__getitem__(idx)
-        # If we're getting columns from the array
-        # Then we expect arrays back, not math3d types
-        if isinstance(idx, tuple):
-            # If we're getting multiple indices And the second index isn't a ":"
-            # Then we're getting columns, and therefore want an ndarray
-            if len(idx) > 1 and idx[1] != slice(None, None, None):
-                return ret.view(np.ndarray)
-        typ = self.getReturnType(ret.shape)
-        if typ is None:
-            return ret
-        return ret.view(typ)
 
     def lengthSquared(self):
         """ Return the squared length of each quaternion
@@ -390,50 +372,6 @@ class QuaternionArray(np.ndarray):
             The number of matrices to build
         """
         return cls(np.zeros((length, 4)))
-
-    def appended(self, value):
-        """ Return a copy of the array with the value appended
-        Euler and Matrix types will be converted to Quaternions
-        All other types will be appended as-is
-
-        Parameters
-        ----------
-        value: iterable
-            An iterable to be appended as-is to the end of this array
-        """
-        newShp = list(self.shape)
-        newShp[0] += 1
-        ret = np.resize(self, newShp).view(type(self))
-
-        from .euler import Euler
-        from .matrixN import MatrixN
-        if isinstance(value, (Euler, MatrixN)):
-            value = value.asQuaternion()
-
-        ret[-1] = value
-        return ret
-
-    def extended(self, value):
-        """ Return a copy of the array extended with the given values
-        Euler and Matrix types will be converted to Quaternions
-        All other types will be appended as-is
-
-        Parameters
-        ----------
-        value: iterable
-            An iterable to be appended as-is to the end of this array
-        """
-        newShp = list(self.shape)
-        newShp[0] += len(value)
-        ret = np.resize(self, newShp).view(type(self))
-
-        from .euler import EulerArray
-        from .matrixN import MatrixNArray
-        if isinstance(value, (EulerArray, MatrixNArray)):
-            value = value.asQuaternionArray()
-
-        ret[-len(value):] = value
-        return ret
 
     @classmethod
     def alignedRotations(cls, axisName, angles, degrees=False):
@@ -580,16 +518,6 @@ class QuaternionArray(np.ndarray):
         """
         m = self.asMatrixArray()
         return m.asEulerArray(order=order, degrees=degrees)
-
-    def asNdArray(self):
-        """ Return this object as a regular numpy array
-
-        Returns
-        -------
-        ndarray:
-            The current object as a numpy array
-        """
-        return self.view(np.ndarray)
 
     def __mul__(self, other):
         other = arrayCompat(other)
