@@ -390,6 +390,8 @@ class TransformationArray(ArrayBase):
 
         if normal is None:
             normal = Vector3((0, 0, 1))
+        if np.isclose(normal.lengthSquared(), 0.0):
+            raise ValueError("Zero-length Normal Provided")
         # don't calculate the endTransform for the parallelTransport
         normals = positions.parallelTransport(normal, endTransform=False)
 

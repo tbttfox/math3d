@@ -15,6 +15,38 @@ class VectorN(MathBase):
             )
         return ary.view(cls)
 
+    @property
+    def x(self):
+        return self[0]
+
+    @x.setter
+    def x(self, val):
+        self[0] = val
+
+    @property
+    def y(self):
+        return self[1]
+
+    @y.setter
+    def y(self, val):
+        self[1] = val
+
+    @property
+    def z(self):
+        return self[2]
+
+    @z.setter
+    def z(self, val):
+        self[2] = val
+
+    @property
+    def w(self):
+        return self[3]
+
+    @w.setter
+    def w(self, val):
+        self[3] = val
+
     @classmethod
     def getReturnType(cls, shape):
         """ Get the type for any return values based on the shape of the return value
@@ -252,6 +284,38 @@ class VectorNArray(ArrayBase):
         ary = np.asarray(input_array, dtype=float)
         ary = ary.reshape((-1, cls.N))
         return ary.view(cls)
+
+    @property
+    def x(self):
+        return self[:, 0]
+
+    @x.setter
+    def x(self, val):
+        self[:, 0] = val
+
+    @property
+    def y(self):
+        return self[:, 1]
+
+    @y.setter
+    def y(self, val):
+        self[:, 1] = val
+
+    @property
+    def z(self):
+        return self[:, 2]
+
+    @z.setter
+    def z(self, val):
+        self[:, 2] = val
+
+    @property
+    def w(self):
+        return self[:, 3]
+
+    @w.setter
+    def w(self, val):
+        self[:, 3] = val
 
     @classmethod
     def getReturnType(cls, shape):

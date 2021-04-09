@@ -39,6 +39,30 @@ class Euler(MathBase):
         self.order = getattr(obj, "order", "xyz")
         self._degrees = getattr(obj, "degrees", False)
 
+    @property
+    def x(self):
+        return self[0]
+
+    @x.setter
+    def x(self, val):
+        self[0] = val
+
+    @property
+    def y(self):
+        return self[1]
+
+    @y.setter
+    def y(self, val):
+        self[1] = val
+
+    @property
+    def z(self):
+        return self[2]
+
+    @z.setter
+    def z(self, val):
+        self[2] = val
+
     def asArray(self):
         """ Return the array type of this object
 
@@ -174,6 +198,30 @@ class EulerArray(ArrayBase):
             return
         self.order = getattr(obj, "order", "xyz")
         self._degrees = getattr(obj, "degrees", False)
+
+    @property
+    def x(self):
+        return self[:, 0]
+
+    @x.setter
+    def x(self, val):
+        self[:, 0] = val
+
+    @property
+    def y(self):
+        return self[:, 1]
+
+    @y.setter
+    def y(self, val):
+        self[:, 1] = val
+
+    @property
+    def z(self):
+        return self[:, 2]
+
+    @z.setter
+    def z(self, val):
+        self[:, 2] = val
 
     @classmethod
     def getReturnType(cls, shape):
