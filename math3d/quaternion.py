@@ -486,15 +486,15 @@ class QuaternionArray(ArrayBase):
         mats = Matrix3Array.zeros(num_rotations)
 
         mats[:, 0, 0] = 1 - 2 * (yy + zz)
-        mats[:, 0, 1] = 2 * (xy - zw)
-        mats[:, 0, 2] = 2 * (xz + yw)
+        mats[:, 1, 0] = 2 * (xy - zw)
+        mats[:, 2, 0] = 2 * (xz + yw)
 
-        mats[:, 1, 0] = 2 * (xy + zw)
+        mats[:, 0, 1] = 2 * (xy + zw)
         mats[:, 1, 1] = 1 - 2 * (xx + zz)
-        mats[:, 1, 2] = 2 * (yz - xw)
+        mats[:, 2, 1] = 2 * (yz - xw)
 
-        mats[:, 2, 0] = 2 * (xz - yw)
-        mats[:, 2, 1] = 2 * (yz + xw)
+        mats[:, 0, 2] = 2 * (xz - yw)
+        mats[:, 1, 2] = 2 * (yz + xw)
         mats[:, 2, 2] = 1 - 2 * (xx + yy)
 
         return mats

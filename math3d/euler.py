@@ -39,6 +39,14 @@ class Euler(MathBase):
         self.order = getattr(obj, "order", "xyz")
         self._degrees = getattr(obj, "degrees", False)
 
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        ret = super(Euler, self).__repr__()
+        ret = ret[:-1] + ', "{0}", degrees={1})'.format(self.order, self._degrees)
+        return ret
+
     @property
     def x(self):
         return self[0]
@@ -198,6 +206,14 @@ class EulerArray(ArrayBase):
             return
         self.order = getattr(obj, "order", "xyz")
         self._degrees = getattr(obj, "degrees", False)
+
+    def __repr__(self):
+        ret = super(EulerArray, self).__repr__()
+        ret = ret[:-1] + ', "{0}", degrees={1})'.format(self.order, self._degrees)
+        return ret
+
+    def __str__(self):
+        return repr(self)
 
     @property
     def x(self):
