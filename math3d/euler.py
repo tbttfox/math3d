@@ -344,7 +344,7 @@ class EulerArray(ArrayBase):
         # Convert multiple euler triples to quaternions
         result = QuaternionArray.alignedRotations(self.order[0], self[:, 0], degrees=self._degrees)
         for idx, axis in enumerate(self.order[1:], start=1):
-            result = result * QuaternionArray.alignedRotations(axis, self[:, idx], degrees=self._degrees)
+            result = QuaternionArray.alignedRotations(axis, self[:, idx], degrees=self._degrees) * result
         return result
 
     def asMatrixArray(self):

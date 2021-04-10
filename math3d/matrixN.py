@@ -429,11 +429,12 @@ class MatrixNArray(ArrayBase):
         if sorted(list(order)) != ["x", "y", "z"]:
             raise ValueError("The given order is not a permutation of 'xyz'")
 
-        if self.ndim == 2:
-            self = self.asArray()
+        ma = self.copy()
+        if ma.ndim == 2:
+            ma = ma.asArray()
 
-        self = self.asMatrixSize(3)
-        num_rotations = self.shape[0]
+        ma = ma.asMatrixSize(3)
+        num_rotations = ma.shape[0]
 
         # Step 0
         # Algorithm assumes axes as column vectors, here we use 1D vectors
@@ -456,7 +457,7 @@ class MatrixNArray(ArrayBase):
 
         # Step 3
         rot = np.array([[1, 0, 0], [0, cl, sl], [0, -sl, cl]])
-        res = np.einsum("...ij,...jk->...ik", c, self)
+        res = np.einsum("...ij,...jk->...ik", c, ma)
         matrix_transformed = np.einsum("...ij,...jk->...ik", res, c.T.dot(rot))
 
         # Step 4
@@ -528,7 +529,7 @@ class MatrixNArray(ArrayBase):
         if degrees:
             angles = np.rad2deg(angles)
 
-        return EulerArray(angles, degrees=degrees)
+        return EulerArray(-angles, degrees=degrees)
 
     def asQuaternionArray(self):
         """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
