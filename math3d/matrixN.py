@@ -542,11 +542,11 @@ class MatrixNArray(ArrayBase):
 
         from .quaternion import QuaternionArray
 
-        self = self.asMatrixSize(3)
-        num_rotations = self.shape[0]
+        m3 = self.asMatrixSize(3)
+        num_rotations = m3.shape[0]
 
         decision_matrix = np.empty((num_rotations, 4))
-        decision_matrix[:, :3] = self.diagonal(axis1=1, axis2=2)
+        decision_matrix[:, :3] = m3.diagonal(axis1=1, axis2=2)
         decision_matrix[:, -1] = decision_matrix[:, :3].sum(axis=1)
         choices = decision_matrix.argmax(axis=1)
 
@@ -557,15 +557,15 @@ class MatrixNArray(ArrayBase):
         j = (i + 1) % 3
         k = (j + 1) % 3
 
-        quats[ind, i] = 1 - decision_matrix[ind, -1] + 2 * self[ind, i, i]
-        quats[ind, j] = self[ind, j, i] + self[ind, i, j]
-        quats[ind, k] = self[ind, k, i] + self[ind, i, k]
-        quats[ind, 3] = self[ind, k, j] - self[ind, j, k]
+        quats[ind, i] = 1 - decision_matrix[ind, -1] + 2 * m3[ind, i, i]
+        quats[ind, j] = m3[ind, i, j] + m3[ind, j, i]
+        quats[ind, k] = m3[ind, i, k] + m3[ind, k, i]
+        quats[ind, 3] = m3[ind, j, k] - m3[ind, k, j]
 
         ind = np.nonzero(choices == 3)[0]
-        quats[ind, 0] = self[ind, 2, 1] - self[ind, 1, 2]
-        quats[ind, 1] = self[ind, 0, 2] - self[ind, 2, 0]
-        quats[ind, 2] = self[ind, 1, 0] - self[ind, 0, 1]
+        quats[ind, 0] = m3[ind, 1, 2] - m3[ind, 2, 1]
+        quats[ind, 1] = m3[ind, 2, 0] - m3[ind, 0, 2]
+        quats[ind, 2] = m3[ind, 0, 1] - m3[ind, 1, 0]
         quats[ind, 3] = 1 + decision_matrix[ind, -1]
 
         # normalize
