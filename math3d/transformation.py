@@ -1,7 +1,7 @@
 import numpy as np
 from .vectorN import Vector3, Vector3Array
 from .quaternion import Quaternion, QuaternionArray
-from .matrixN import Matrix4, Matrix4Array, Matrix3Array
+from .matrixN import Matrix4, Matrix4Array, Matrix3, Matrix3Array
 from .euler import Euler, EulerArray
 from .utils import asarray, arrayCompat
 from .base import MathBase, ArrayBase
@@ -117,6 +117,21 @@ class Transformation(MathBase):
             ret.rotation = rotation
         return ret
 
+    def mirrored(self, axis="x"):
+        """ Mirror the transformation along the given axis
+
+        Parameters
+        ----------
+        axis: str, optional
+            The axis to mirror along. Defaults to "x"
+
+        Returns
+        -------
+        Transformation:
+            The mirrored transformation
+        """
+        return self.asArray().mirrored(axis=axis)[0]
+
 
 class TransformationArray(ArrayBase):
     def __new__(cls, input_array=None):
@@ -201,7 +216,7 @@ class TransformationArray(ArrayBase):
         if scale is not None:
             ret.scale = scale
         if rotation is not None:
-            ret.rotation = ret.rotation
+            ret.rotation = rotation
         return ret
 
     def copy(self, translation=None, rotation=None, scale=None):
@@ -255,16 +270,6 @@ class TransformationArray(ArrayBase):
             if shape[-1] == 10:
                 return cls
         return np.ndarray
-
-    def asArray(self):
-        """ Return the array type of this object
-
-        Returns
-        -------
-        ArrayType:
-            The current object up-cast into a length-1 array
-        """
-        return self[None, ...]
 
     @property
     def translation(self):
@@ -423,3 +428,4 @@ class TransformationArray(ArrayBase):
         m = self.asMatrixArray()
         m[:, :, index] *= -1
         return m.asTransformArray()
+

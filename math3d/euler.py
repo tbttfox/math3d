@@ -71,16 +71,6 @@ class Euler(MathBase):
     def z(self, val):
         self[2] = val
 
-    def asArray(self):
-        """ Return the array type of this object
-
-        Returns
-        -------
-        ArrayType:
-            The current object up-cast into a length-1 array
-        """
-        return self[None, ...]
-
     @property
     def degrees(self):
         return self._degrees

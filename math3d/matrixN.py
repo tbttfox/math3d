@@ -55,16 +55,6 @@ class MatrixN(MathBase):
                 return cls.arrayType
         return np.ndarray
 
-    def asArray(self):
-        """ Return the array type of this object
-
-        Returns
-        -------
-        ArrayType:
-            The current object up-cast into a length-1 array
-        """
-        return self[None, ...]
-
     def asMatrixSize(self, n):
         """ Return a square matrix of a given size based on the current matrix.
         If the size is smaller, keep the upper left square of the matrix
@@ -81,7 +71,7 @@ class MatrixN(MathBase):
         typ = MATRIX_BY_SIZE[n]
         ret = typ()
         n = min(n, self.N)
-        ret[:n] = self[:n]
+        ret[:n, :n] = self[:n, :n]
         return ret
 
     def asEuler(self, order="xyz", degrees=False):
@@ -120,14 +110,14 @@ class MatrixN(MathBase):
             if other.N != self.N:
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
-            return np.dot(self, other)
+            return np.dot(self, other).view(type(self))
 
         if isinstance(other, MatrixNArray):
             if other.N != self.N:
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
             aa = self.asArray()
-            return np.einsum('xij,xjk->xik', aa, other)
+            return np.einsum('xij,xjk->xik', aa, other).view(type(aa))
         return super(MatrixN, self).__mul__(other)
 
     def __imul__(self, other):
@@ -221,6 +211,30 @@ class MatrixN(MathBase):
 
     def flattened(self):
         return self.reshape(self.N**2)
+
+    def getHandedness(self):
+        """ Return the handedness of each matrix in the array
+
+        Returns
+        -------
+        float:
+            1.0 if the matrix is right-handed, otherwise -1.0
+        """
+        return self.asArray().getHandedness()[0]
+
+    def asRotScale(self):
+        """ Get a normalized, right-handed rotation matrix along with the
+        scale that was passed in
+
+        Returns
+        -------
+        Vector3:
+            The scale part of the matrix
+        Matrix3:
+            The normalized right-handed rotation matrix
+        """
+        r, s = self.asArray().asRotScaleArray()
+        return r[0], s[0]
 
 
 class MatrixNArray(ArrayBase):
@@ -365,13 +379,13 @@ class MatrixNArray(ArrayBase):
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
             other = arrayCompat(other, nDim=3)
-            return np.einsum('xij,xjk->xik', self, other)
+            return np.einsum('xij,xjk->xik', self, other).view(type(self))
 
         if isinstance(other, MatrixNArray):
             if other.N != self.N:
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
-            return np.einsum('xij,xjk->xik', self, other)
+            return np.einsum('xij,xjk->xik', self, other).view(type(self))
         return super(MatrixN, self).__mul__(other)
 
     def __imul__(self, other):
@@ -651,6 +665,44 @@ class MatrixNArray(ArrayBase):
         ret[:, oldUpAxis, :] *= -1
         return ret
 
+    def getHandedness(self):
+        """ Return the handedness of each matrix in the array
+
+        Returns
+        -------
+        NumpyArray:
+            1.0 if the matrix at the index is right-handed, otherwise -1.0
+        """
+        # look for flipped matrices
+        m33 = self.asMatrixSize(3)
+        flips = m33[:, 0].cross(m33[:, 1]).dot(m33[:, 2])
+        negs = np.ones(flips.shape)
+        negs[flips < 0.0] = -1.0
+        return negs
+
+    def asRotScaleArray(self):
+        """ Get a normalized, right-handed rotation matrix along with the
+        scales that were passed in
+
+        Returns
+        -------
+        Matrix3Array:
+            The normalized right-handed rotation matrices
+        Vector3Array:
+            The scale part of the matrixes
+        """
+        m33 = self.asMatrixSize(3)
+        scale = np.sqrt(np.einsum("...ij,...ij->...i", m33, m33))
+        negs = m33.getHandedness()
+        scale *= negs
+
+        # in numpy, transposing is basically free
+        m33 = m33.transpose((0, 2, 1))
+        m33 = m33 / scale
+        m33 = m33.transpose((0, 2, 1))
+
+        return m33, VECTOR_ARRAY_BY_SIZE[3](scale)
+
     def asScaleArray(self):
         """ Return the scale part of the matrixes
 
@@ -659,9 +711,12 @@ class MatrixNArray(ArrayBase):
         Vector3Array:
             The scale part of the matrixes
         """
+        m33 = self.asMatrixSize(3)
+        scale = np.sqrt(np.einsum("...ij,...ij->...i", m33, m33))
 
-        scale = self[:, :3, :3]
-        scale = np.sqrt(np.einsum("...ij,...ij->...i", scale, scale))
+        negs = m33.getHandedness()
+        scale *= negs
+
         return VECTOR_ARRAY_BY_SIZE[3](scale)
 
     def asTranslationArray(self):
@@ -686,10 +741,9 @@ class MatrixNArray(ArrayBase):
         Vector3Array:
             The Scale array
         """
-
         tran = self.asTranslationArray()
-        rot = self.asQuaternionArray()
-        scale = self.asScaleArray()
+        mrot, scale = self.asRotScaleArray()
+        rot = mrot.asQuaternionArray()
         return tran, rot, scale
 
     def asTransformArray(self):
@@ -701,7 +755,7 @@ class MatrixNArray(ArrayBase):
             The transform array
         """
         from .transformation import TransformationArray
-        t, r, s = self.decompose()
+        t, r, s = self.asMatrixSize(4).decompose()
         return TransformationArray.fromParts(translation=t, rotation=r, scale=s)
 
     def flattened(self):

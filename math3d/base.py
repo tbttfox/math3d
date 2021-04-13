@@ -3,6 +3,16 @@ from .utils import arrayCompat
 
 
 class MathBase(np.ndarray):
+    def asArray(self):
+        """ Return the array type of this object
+
+        Returns
+        -------
+        ArrayType:
+            The current object up-cast into a length-1 array
+        """
+        return self[None, ...]
+
     def asNdArray(self):
         """ Return this object as a regular numpy array
 
