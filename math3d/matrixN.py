@@ -557,6 +557,8 @@ class MatrixNArray(ArrayBase):
         from .quaternion import QuaternionArray
 
         m3 = self.asMatrixSize(3)
+        m3, scales = m3.asRotScaleArray()
+
         num_rotations = m3.shape[0]
 
         decision_matrix = np.empty((num_rotations, 4))
