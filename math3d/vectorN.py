@@ -201,7 +201,7 @@ class VectorN(MathBase):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
             exp = self.asVectorSize(other.N)
-            ret = np.dot(self, other)
+            ret = np.dot(exp, other)
             return ret.asVectorSize(self.N)
         elif isinstance(other, MatrixNArray):
             if other.N < self.N:
