@@ -67,11 +67,14 @@ class VectorN(MathBase):
         if len(shape) == 1:
             if shape[0] == cls.N:
                 return cls
+            if shape[0] in VECTOR_BY_SIZE:
+                return VECTOR_BY_SIZE[shape[0]]
         elif len(shape) == 2:
             # This could happen with fancy indexing
             if shape[-1] == cls.N:
                 return cls.arrayType
-
+            if shape[-1] in VECTOR_ARRAY_BY_SIZE:
+                return VECTOR_ARRAY_BY_SIZE[shape[-1]]
         return np.ndarray
 
     def lengthSquared(self):

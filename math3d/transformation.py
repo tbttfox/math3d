@@ -132,6 +132,41 @@ class Transformation(MathBase):
         """
         return self.asArray().mirrored(axis=axis)[0]
 
+    @classmethod
+    def lookAt(
+        cls, position, look, normal, axis="xy", negativeSide=False,
+    ):
+        """
+        Make a vector-oriented Transformation from a position, a major look
+        axis, an a minor look axis
+
+        Parameters
+        ----------
+        positions: Vector3
+            The point that will be the translation of the output transform
+        looks: Vector3
+            The vector that the main axis will look along
+        normals: Vector3
+            The vector that are pointing in the normal direction
+        axis: string
+            Axis pointing to the target and to the normal (ie: 'xy', 'yz', '-zy', 'x-z')
+        negativeSide: bool
+            Flip the transform
+
+        Returns
+        -------
+        TransformationArray:
+            The resulting transformations
+        """
+        ta = TransformationArray.lookAts(
+            position.asArray(),
+            look.asArray(),
+            normal.asArray(),
+            axis=axis,
+            negativeSide=negativeSide,
+        )
+        return ta[0]
+
 
 class TransformationArray(ArrayBase):
     def __new__(cls, input_array=None):
@@ -252,6 +287,7 @@ class TransformationArray(ArrayBase):
         Appending, extending, or inserting
         """
         from .matrixN import Matrix4, Matrix4Array
+
         if isinstance(value, Matrix4Array):
             return value.asTransformArray()
         elif isinstance(value, Matrix4):
@@ -314,12 +350,7 @@ class TransformationArray(ArrayBase):
 
     @classmethod
     def lookAts(
-        cls,
-        positions,
-        looks,
-        normals,
-        axis="xy",
-        negativeSide=False,
+        cls, positions, looks, normals, axis="xy", negativeSide=False,
     ):
         """
         Make an array of vector-oriented Transformations
@@ -359,12 +390,7 @@ class TransformationArray(ArrayBase):
 
     @classmethod
     def chain(
-        cls,
-        positions,
-        normal=None,
-        axis="xy",
-        negativeSide=False,
-        endTransform=True,
+        cls, positions, normal=None, axis="xy", negativeSide=False, endTransform=True,
     ):
         """Alternate constructor to create a chain of transforms based on a set of positions.
 
@@ -400,7 +426,9 @@ class TransformationArray(ArrayBase):
         # don't calculate the endTransform for the parallelTransport
         normals = positions.parallelTransport(normal, endTransform=False)
 
-        ret = cls.lookAts(positions[:-1], looks, normals, axis=axis, negativeSide=negativeSide)
+        ret = cls.lookAts(
+            positions[:-1], looks, normals, axis=axis, negativeSide=negativeSide
+        )
         if endTransform:
             end = ret[-1].copy()
             end.translation = positions[-1]
@@ -428,4 +456,3 @@ class TransformationArray(ArrayBase):
         m = self.asMatrixArray()
         m[:, :, index] *= -1
         return m.asTransformArray()
-
