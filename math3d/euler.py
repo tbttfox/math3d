@@ -105,7 +105,7 @@ class Euler(MathBase):
         return self.copy()
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -230,7 +230,7 @@ class EulerArray(ArrayBase):
         self[:, 2] = val
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 

@@ -48,7 +48,7 @@ class VectorN(MathBase):
         self[3] = val
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -311,7 +311,7 @@ class VectorNArray(ArrayBase):
         self[:, 3] = val
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -500,7 +500,19 @@ class VectorNArray(ArrayBase):
             ret = QuaternionArray.vectorquatproduct(exp, other)
             return ret.asVectorSize(self.N)
 
+
+        from .transformation import Transformation, TransformationArray
+        if isinstance(other, Transformation):
+            a = self * other.scale.view(np.array)
+            b = a * other.rotation
+            c = b + other.translation
+            return c
+
+        elif isinstance(other, TransformationArray):
+            pass
+
         return super(VectorNArray, self).__mul__(other)
+
 
     def angle(self, other):
         """ Get the angle between pairs of vectors

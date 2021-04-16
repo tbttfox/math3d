@@ -26,7 +26,7 @@ class MatrixN(MathBase):
         return ary.view(cls)
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -258,8 +258,30 @@ class MatrixNArray(ArrayBase):
             return value.asMatrix()
         return value
 
+    def __getitem__(self, idx):
+        ret = super(ArrayBase, self).__getitem__(idx)
+        # If we're getting columns from the array then we expect ndarrays back, not math3d types
+        # However slicing matrices should give vectors, so only do this is ndim == 2
+        if self.ndim == 3 and isinstance(idx, tuple):
+            # If we're getting multiple indices And the second index isn't a ":"
+            # Then we're getting columns, and therefore want a vectorArray
+            try:
+                if len(idx) > 1:
+                    if not isinstance(idx[-1], slice):
+                        return ret.view(VECTOR_ARRAY_BY_SIZE[self.N])
+                    elif idx[-1] != slice(None, None, None):
+                        return ret.view(VECTOR_ARRAY_BY_SIZE[self.N])
+            except ValueError:
+                print idx
+                raise
+        typ = self.getReturnType(ret.shape, idx)
+        if typ is None:
+            return ret
+        return ret.view(typ)
+
+
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -677,7 +699,7 @@ class MatrixNArray(ArrayBase):
         """
         # look for flipped matrices
         m33 = self.asMatrixSize(3)
-        flips = np.dot(np.cross(m33[:, 0], m33[:, 1]), m33[:, 2].T)
+        flips = m33[:, 0].cross(m33[:, 1]).dot(m33[:, 2])
         negs = np.ones(flips.shape)
         negs[flips < 0.0] = -1.0
         return negs
@@ -695,12 +717,12 @@ class MatrixNArray(ArrayBase):
         """
         m33 = self.asMatrixSize(3)
         scale = np.sqrt(np.einsum("...ij,...ij->...i", m33, m33))
-        negs = m33.getHandedness()
+        negs = m33.getHandedness()[..., None]
         scale *= negs
 
         # in numpy, transposing is basically free
         m33 = m33.transpose((0, 2, 1))
-        m33 = m33 / scale
+        m33 = m33 / scale[..., None]
         m33 = m33.transpose((0, 2, 1))
 
         return m33, VECTOR_ARRAY_BY_SIZE[3](scale)

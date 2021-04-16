@@ -1,5 +1,5 @@
 import numpy as np
-from .vectorN import Vector3, Vector3Array
+from .vectorN import Vector3, Vector3Array, VectorN
 from .quaternion import Quaternion, QuaternionArray
 from .matrixN import Matrix4, Matrix4Array, Matrix3, Matrix3Array
 from .euler import Euler, EulerArray
@@ -55,7 +55,7 @@ class Transformation(MathBase):
         self[:3] = other
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         if not shape:
             return None
         if len(shape) == 1:
@@ -166,6 +166,9 @@ class Transformation(MathBase):
             negativeSide=negativeSide,
         )
         return ta[0]
+
+    def __mul__(self, other):
+        return self.asMatrix() * other
 
 
 class TransformationArray(ArrayBase):
@@ -282,6 +285,9 @@ class TransformationArray(ArrayBase):
         lines[-1] = lines[-1] + "]"
         return "\n".join(lines)
 
+    def __mul__(self, other):
+        return self.asMatrixArray() * other
+
     def _convertToCompatibleType(self, value):
         """ Convert a value to a type compatible with
         Appending, extending, or inserting
@@ -295,7 +301,7 @@ class TransformationArray(ArrayBase):
         return value
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         if not shape:
             return None
         if len(shape) == 1:

@@ -24,7 +24,7 @@ class MathBase(np.ndarray):
         return self.view(np.ndarray)
 
     @classmethod
-    def getReturnType(cls, shape):
+    def getReturnType(cls, shape, idx=None):
         """ Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
@@ -42,14 +42,13 @@ class MathBase(np.ndarray):
 
     def __getitem__(self, idx):
         ret = super(MathBase, self).__getitem__(idx)
-        typ = self.getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape, idx)
         if typ is None:
             return ret
         return ret.view(typ)
 
 
 class ArrayBase(MathBase):
-    """ An array of Quaternion objects """
     def __getitem__(self, idx):
         ret = super(ArrayBase, self).__getitem__(idx)
         # If we're getting columns from the array then we expect ndarrays back, not math3d types
@@ -66,7 +65,7 @@ class ArrayBase(MathBase):
             except ValueError:
                 print idx
                 raise
-        typ = self.getReturnType(ret.shape)
+        typ = self.getReturnType(ret.shape, idx)
         if typ is None:
             return ret
         return ret.view(typ)
