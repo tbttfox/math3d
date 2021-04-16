@@ -167,8 +167,14 @@ class Transformation(MathBase):
         )
         return ta[0]
 
+    def copy(self, translation=None, rotation=None, scale=None):
+        ta = self.asArray()
+        ta = ta.copy(translation, rotation, scale)
+        return ta[0]
+
     def __mul__(self, other):
-        return self.asMatrix() * other
+        result = self.asMatrix() * other.asMatrix()
+        return result.asTransform()
 
 
 class TransformationArray(ArrayBase):
