@@ -677,7 +677,7 @@ class MatrixNArray(ArrayBase):
         """
         # look for flipped matrices
         m33 = self.asMatrixSize(3)
-        flips = np.dot(np.cross(m33[:, 0], m33[:, 1]), m33[:, 2])
+        flips = np.dot(np.cross(m33[:, 0], m33[:, 1]), m33[:, 2].T)
         negs = np.ones(flips.shape)
         negs[flips < 0.0] = -1.0
         return negs
