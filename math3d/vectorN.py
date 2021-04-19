@@ -269,6 +269,10 @@ class VectorN(MathBase):
             sa = self.asArray()
         return ((other - sa) * percent) + sa
 
+    def angle(self, other):
+        sa = self.asArray()
+        angles = sa.angle(other)
+        return angles[0]
 
 class VectorNArray(ArrayBase):
     def __new__(cls, input_array=None):
