@@ -263,6 +263,14 @@ class VectorN(MathBase):
             return (self.asArray() - other).length()
         return (self - other).length()
 
+    def distanceToAxis(self, posA, posB):
+        axis = posB - posA
+        hyp = pos - posA
+
+        a = axis.angle(hyp)
+
+        return np.sin(a) * hyp.length()
+
     def lerp(self, other, percent):
         sa = self
         if isinstance(other, VectorNArray):
