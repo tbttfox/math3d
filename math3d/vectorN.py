@@ -265,7 +265,7 @@ class VectorN(MathBase):
 
     def distanceToAxis(self, posA, posB):
         axis = posB - posA
-        hyp = pos - posA
+        hyp = self - posA
 
         a = axis.angle(hyp)
 
