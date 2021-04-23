@@ -1,5 +1,5 @@
 import numpy as np
-from .vectorN import Vector3, Vector3Array, VectorN
+from .vectorN import Vector3, Vector3Array, VectorN, VectorNArray
 from .quaternion import Quaternion, QuaternionArray
 from .matrixN import Matrix4, Matrix4Array, Matrix3, Matrix3Array
 from .euler import Euler, EulerArray
@@ -173,9 +173,17 @@ class Transformation(MathBase):
         return ta[0]
 
     def __mul__(self, other):
-        result = self.asMatrix() * other.asMatrix()
-        return result.asTransform()
+        if isinstance(other, (VectorN, VectorNArray)):
+            msg = "Cannot multiply transformation*vector. You must multiply vector*transformation\n"
+            msg += "Make sure when you multiply it's in `child * parent * grandparent` order"
+            raise TypeError(msg)
 
+        if hasattr(other, 'asMatrix'):
+            other = other.asMatrix()
+        elif hasattr(other, 'asMatrixArray'):
+            other = other.asMatrixArray()
+        ret = self.asMatrix() * other
+        return ret.asTransform()
 
 class TransformationArray(ArrayBase):
     def __new__(cls, input_array=None):
@@ -292,7 +300,17 @@ class TransformationArray(ArrayBase):
         return "\n".join(lines)
 
     def __mul__(self, other):
-        return self.asMatrixArray() * other
+        if isinstance(other, (VectorN, VectorNArray)):
+            msg = "Cannot multiply transformation*vector. You must multiply vector*transformation\n"
+            msg += "Make sure when you multiply it's in `child * parent * grandparent` order"
+            raise TypeError(msg)
+
+        if hasattr(other, 'asMatrix'):
+            other = other.asMatrix()
+        elif hasattr(other, 'asMatrixArray'):
+            other = other.asMatrixArray()
+        ret = self.asMatrixArray() * other
+        return ret.asTransform()
 
     def _convertToCompatibleType(self, value):
         """ Convert a value to a type compatible with

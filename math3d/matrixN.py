@@ -390,6 +390,26 @@ class MatrixNArray(ArrayBase):
         """ Invert the matrices in-place """
         self[:] = np.linalg.inv(self)
 
+    def normalized(self):
+        """ Return the inverse of the current matrixes
+
+        Returns
+        -------
+        MatrixNArray
+            The normalized matrices
+        """
+        m33 = self.asMatrixSize(3)
+        # in numpy, transposing is basically free
+        m33 = m33.transpose((0, 2, 1))
+        scale = np.sqrt(np.einsum("...ij,...ij->...i", m33, m33))
+        m33 = m33 / scale[..., None]
+        m33 = m33.transpose((0, 2, 1))
+        return m33
+
+    def normalize(self):
+        """ Normalize the columns of the arrays in-place """
+        self[:] = self.normalized()
+
     def __mul__(self, other):
         if isinstance(other, (VectorN, VectorNArray)):
             msg = "Cannot multiply matrix*vector. You must multiply vector*matrix\n"
@@ -572,14 +592,14 @@ class MatrixNArray(ArrayBase):
 
         Returns
         -------
-        EulerArray
+        QuaternionArray
             The array of orientations
         """
 
         from .quaternion import QuaternionArray
 
         m3 = self.asMatrixSize(3)
-        m3, scales = m3.asRotScaleArray()
+        m3.normalize()
 
         num_rotations = m3.shape[0]
 
