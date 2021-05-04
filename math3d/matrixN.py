@@ -236,6 +236,20 @@ class MatrixN(MathBase):
         r, s = self.asArray().asRotScaleArray()
         return r[0], s[0]
 
+    def normalized(self):
+        """ return a normalized, rotation matrix
+
+        Returns
+        -------
+        Matrix3:
+            The normalized right-handed rotation matrix
+        """
+        return self.asArray().normalized()[0]
+
+    def normalize(self):
+        """ Normalize the rotation matrix in-place """
+        self[:3, :3] = self.normalized()
+
 
 class MatrixNArray(ArrayBase):
     def __new__(cls, input_array=None):
@@ -390,26 +404,6 @@ class MatrixNArray(ArrayBase):
         """ Invert the matrices in-place """
         self[:] = np.linalg.inv(self)
 
-    def normalized(self):
-        """ Return the inverse of the current matrixes
-
-        Returns
-        -------
-        MatrixNArray
-            The normalized matrices
-        """
-        m33 = self.asMatrixSize(3)
-        # in numpy, transposing is basically free
-        m33 = m33.transpose((0, 2, 1))
-        scale = np.sqrt(np.einsum("...ij,...ij->...i", m33, m33))
-        m33 = m33 / scale[..., None]
-        m33 = m33.transpose((0, 2, 1))
-        return m33
-
-    def normalize(self):
-        """ Normalize the columns of the arrays in-place """
-        self[:] = self.normalized()
-
     def __mul__(self, other):
         if isinstance(other, (VectorN, VectorNArray)):
             msg = "Cannot multiply matrix*vector. You must multiply vector*matrix\n"
@@ -449,187 +443,6 @@ class MatrixNArray(ArrayBase):
                 raise TypeError(msg.format(self.N, other.N))
             self[:] = np.einsum('xij,xjk->xik', self, other)
         return super(MatrixN, self).__mul__(other)
-
-    def asEulerArray(self, order="xyz", degrees=False):
-        """ Convert the upper left 3x3 of these matrixes to Euler rotations
-
-        Parameters
-        ----------
-        order: str, optional
-            The order in which the axis rotations are applied
-            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
-            Defaults to 'xyz'
-        degrees: bool, optional
-            Whether the angles are given in degrees or radians. Defaults to False (radians)
-
-        Returns
-        -------
-        EulerArray
-            The array of orientations
-        """
-        from .euler import EulerArray
-
-        # Taken almost directly from the scipy transforms rotations code
-        # This algorithm doesn't actually assume the basis vectors are
-        # perpendicular to each other.
-
-        # ---------------------------------------------------------------
-        # The algorithm assumes intrinsic frame transformations. The algorithm
-        # in the paper is formulated for rotation matrices which are transposition
-        # rotation matrices used within Rotation.
-        # Adapt the algorithm for our case by
-        # Instead of transposing our representation, use the transpose of the
-        # O matrix as defined in the paper, and be careful to swap indices
-
-        order = order.lower()
-        if sorted(list(order)) != ["x", "y", "z"]:
-            raise ValueError("The given order is not a permutation of 'xyz'")
-
-        ma = self.copy()
-        if ma.ndim == 2:
-            ma = ma.asArray()
-
-        ma = ma.asMatrixSize(3)
-        num_rotations = ma.shape[0]
-
-        # Step 0
-        # Algorithm assumes axes as column vectors, here we use 1D vectors
-        bvs = []
-        for axis in order:
-            b = np.zeros(3)
-            b["xyz".index(axis)] = 1
-            bvs.append(b)
-        n1, n2, n3 = bvs[:3]
-
-        # Step 2
-        # SL is the parity of the order
-        sl = np.dot(np.cross(n1, n2), n3)
-        cl = np.dot(n1, n3)
-
-        # angle offset is lambda from the paper referenced in [2] from docstring of
-        # `as_euler` function
-        offset = np.arctan2(sl, cl)
-        c = np.vstack((n2, np.cross(n1, n2), n1))
-
-        # Step 3
-        rot = np.array([[1, 0, 0], [0, cl, sl], [0, -sl, cl]])
-        res = np.einsum("...ij,...jk->...ik", c, ma)
-        matrix_transformed = np.einsum("...ij,...jk->...ik", res, c.T.dot(rot))
-
-        # Step 4
-        angles = np.empty((num_rotations, 3))
-        # Ensure less than unit norm
-        positive_unity = matrix_transformed[:, 2, 2] > 1
-        negative_unity = matrix_transformed[:, 2, 2] < -1
-        matrix_transformed[positive_unity, 2, 2] = 1
-        matrix_transformed[negative_unity, 2, 2] = -1
-        angles[:, 1] = np.arccos(matrix_transformed[:, 2, 2])
-
-        # Steps 5, 6
-        eps = 1e-7
-        safe1 = np.abs(angles[:, 1]) >= eps
-        safe2 = np.abs(angles[:, 1] - np.pi) >= eps
-
-        # Step 4 (Completion)
-        angles[:, 1] += offset
-
-        # 5b
-        safe_mask = np.logical_and(safe1, safe2)
-        angles[safe_mask, 0] = np.arctan2(
-            matrix_transformed[safe_mask, 0, 2], -matrix_transformed[safe_mask, 1, 2]
-        )
-        angles[safe_mask, 2] = np.arctan2(
-            matrix_transformed[safe_mask, 2, 0], matrix_transformed[safe_mask, 2, 1]
-        )
-
-        # For instrinsic, set third angle to zero
-        # 6a
-        angles[~safe_mask, 2] = 0
-        # 6b
-        angles[~safe1, 0] = np.arctan2(
-            matrix_transformed[~safe1, 1, 0] - matrix_transformed[~safe1, 0, 1],
-            matrix_transformed[~safe1, 0, 0] + matrix_transformed[~safe1, 1, 1],
-        )
-        # 6c
-        angles[~safe2, 0] = np.arctan2(
-            matrix_transformed[~safe2, 1, 0] + matrix_transformed[~safe2, 0, 1],
-            matrix_transformed[~safe2, 0, 0] - matrix_transformed[~safe2, 1, 1],
-        )
-
-        # Step 7
-        if order[0] == order[2]:
-            # lambda = 0, so we can only ensure angle2 -> [0, pi]
-            adjust_mask = np.logical_or(angles[:, 1] < 0, angles[:, 1] > np.pi)
-        else:
-            # lambda = + or - pi/2, so we can ensure angle2 -> [-pi/2, pi/2]
-            adjust_mask = np.logical_or(
-                angles[:, 1] < -np.pi / 2, angles[:, 1] > np.pi / 2
-            )
-
-        # Dont adjust gimbal locked angle sequences
-        adjust_mask = np.logical_and(adjust_mask, safe_mask)
-
-        angles[adjust_mask, 0] += np.pi
-        angles[adjust_mask, 1] = 2 * offset - angles[adjust_mask, 1]
-        angles[adjust_mask, 2] -= np.pi
-
-        angles[angles < -np.pi] += 2 * np.pi
-        angles[angles > np.pi] -= 2 * np.pi
-
-        # Step 8
-        # if not np.all(safe_mask):
-        # warnings.warn(
-        # "Gimbal lock detected. Setting third angle to zero since"
-        # " it is not possible to uniquely determine all angles."
-        # )
-        if degrees:
-            angles = np.rad2deg(angles)
-
-        return EulerArray(-angles, degrees=degrees)
-
-    def asQuaternionArray(self):
-        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
-
-        Returns
-        -------
-        QuaternionArray
-            The array of orientations
-        """
-
-        from .quaternion import QuaternionArray
-
-        m3 = self.asMatrixSize(3)
-        m3.normalize()
-
-        num_rotations = m3.shape[0]
-
-        decision_matrix = np.empty((num_rotations, 4))
-        decision_matrix[:, :3] = m3.diagonal(axis1=1, axis2=2)
-        decision_matrix[:, -1] = decision_matrix[:, :3].sum(axis=1)
-        choices = decision_matrix.argmax(axis=1)
-
-        quats = np.empty((num_rotations, 4))
-
-        ind = np.nonzero(choices != 3)[0]
-        i = choices[ind]
-        j = (i + 1) % 3
-        k = (j + 1) % 3
-
-        quats[ind, i] = 1 - decision_matrix[ind, -1] + 2 * m3[ind, i, i]
-        quats[ind, j] = m3[ind, i, j] + m3[ind, j, i]
-        quats[ind, k] = m3[ind, i, k] + m3[ind, k, i]
-        quats[ind, 3] = m3[ind, j, k] - m3[ind, k, j]
-
-        ind = np.nonzero(choices == 3)[0]
-        quats[ind, 0] = m3[ind, 1, 2] - m3[ind, 2, 1]
-        quats[ind, 1] = m3[ind, 2, 0] - m3[ind, 0, 2]
-        quats[ind, 2] = m3[ind, 0, 1] - m3[ind, 1, 0]
-        quats[ind, 3] = 1 + decision_matrix[ind, -1]
-
-        # normalize
-        qlens = np.sqrt(np.einsum("ij,ij->i", quats, quats))
-        quats = quats / qlens[:, None]
-        return QuaternionArray(quats)
 
     @staticmethod
     def lookAts(looks, ups, axis="xy"):
@@ -678,9 +491,9 @@ class MatrixNArray(ArrayBase):
             sides *= -1
 
         ret = MATRIX_ARRAY_BY_SIZE[3].eye(len(looks))
-        ret[:, lookAxis] = looks
-        ret[:, upAxis] = ups
-        ret[:, sideAxis] = sides
+        ret[:, :, lookAxis] = looks
+        ret[:, :, upAxis] = ups
+        ret[:, :, sideAxis] = sides
 
         return ret
 
@@ -709,6 +522,32 @@ class MatrixNArray(ArrayBase):
         ret[:, oldUpAxis, :] *= -1
         return ret
 
+    def _scales(self):
+        """ Get the scale of each matrix column """
+        return np.sqrt(np.einsum("...ij,...ij->...j", self, self))
+
+   def _handedness(self):
+        """ Get the handedness of each matrix. -1 means left-handed """
+        # look for flipped matrices
+        flips = self[:, 0].cross(self[:, 1]).dot(self[:, 2])
+        negs = np.ones(flips.shape)
+        negs[flips < 0.0] = -1.0
+        return negs
+
+    def normalized(self):
+        """ Return the normal of the current matrices
+
+        Returns
+        -------
+        MatrixNArray
+            The normalized matrices
+        """
+        return self / self._scales()[:, None, :]
+
+    def normalize(self):
+        """ Normalize the columns of the arrays in-place """
+        self[:] = self.normalized()
+
     def getHandedness(self):
         """ Return the handedness of each matrix in the array
 
@@ -717,12 +556,9 @@ class MatrixNArray(ArrayBase):
         NumpyArray:
             1.0 if the matrix at the index is right-handed, otherwise -1.0
         """
-        # look for flipped matrices
-        m33 = self.asMatrixSize(3)
-        flips = m33[:, 0].cross(m33[:, 1]).dot(m33[:, 2])
-        negs = np.ones(flips.shape)
-        negs[flips < 0.0] = -1.0
-        return negs
+        return self.asMatrixSize(3)._handedness()
+
+
 
     def asRotScaleArray(self):
         """ Get a normalized, right-handed rotation matrix along with the
@@ -736,15 +572,8 @@ class MatrixNArray(ArrayBase):
             The scale part of the matrixes
         """
         m33 = self.asMatrixSize(3)
-        scale = np.sqrt(np.einsum("...ij,...ij->...i", m33, m33))
-        negs = m33.getHandedness()[..., None]
-        scale *= negs
-
-        # in numpy, transposing is basically free
-        m33 = m33.transpose((0, 2, 1))
-        m33 = m33 / scale[..., None]
-        m33 = m33.transpose((0, 2, 1))
-
+        scale = m33._scales() * m33._handedness()[..., None]
+        m33 = m33 / scale[:, None, :]
         return m33, VECTOR_ARRAY_BY_SIZE[3](scale)
 
     def asScaleArray(self):
@@ -756,12 +585,13 @@ class MatrixNArray(ArrayBase):
             The scale part of the matrixes
         """
         m33 = self.asMatrixSize(3)
-        scale = np.sqrt(np.einsum("...ij,...ij->...i", m33, m33))
-
-        negs = m33.getHandedness()
-        scale *= negs
-
+        scale = m33._scales() * m33._handedness()[..., None]
         return VECTOR_ARRAY_BY_SIZE[3](scale)
+
+
+
+
+
 
     def asTranslationArray(self):
         """ Return the translation part of the matrixes
@@ -804,6 +634,106 @@ class MatrixNArray(ArrayBase):
 
     def flattened(self):
         return self.reshape((-1, self.N**2))
+
+    def asQuaternionArray(self):
+        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
+
+        Returns
+        -------
+        QuaternionArray
+            The array of orientations
+        """
+
+        from .quaternion import QuaternionArray
+
+        # work on a copy */
+        mat = self.normalized()
+
+        # rotate z-axis of matrix to z-axis */
+        nor = Vector3Array.zeros(len(self))
+        nor[:, 0] = mat[:, 2, 1]
+        nor[:, 1] = -mat[:, 2, 0]
+        nor.normalize()
+
+        co = mat[:, 2, 2]
+        co[co <= -1.0] = -1.0
+        co[co >= 1.0] = 1.0
+        angle = 0.5 * np.arccos(co)
+        co = np.cos(angle)
+        si = np.sin(angle)
+
+        q1 = QuaternionArray.eye(len(self))
+        q1[:, :3] = -nor * si[None, :]
+        q1[:, 3] = co[None, :]
+
+        # rotate back x-axis from mat, using inverse q1 */
+        matr = q1.asMatrixArray()
+        matn = mat[:, 0] * matr.inverse()
+
+        # and align x-axes */
+        angle = 0.5 * np.arctan2(mat[:, 0, 1], mat[:, 0, 0])
+        co = np.cos(angle)
+        si = np.sin(angle)
+        q2 = QuaternionArray.eye(len(self))
+        q2[:, 2] = si[None, :]
+        q2[:, 3] = co[None, :]
+        return q1 * q2
+
+    def asEulerArray(self, order="xyz", degrees=False):
+        """ Convert the upper left 3x3 of these matrixes to Euler rotations
+
+        Parameters
+        ----------
+        order: str, optional
+            The order in which the axis rotations are applied
+            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+            Defaults to 'xyz'
+        degrees: bool, optional
+            Whether the angles are given in degrees or radians. Defaults to False (radians)
+
+        Returns
+        -------
+        EulerArray
+            The array of orientations
+        """
+        from .euler import EulerArray
+
+        (i, j, k), parity = EulerArray.ROT_ORDERS[order]
+        m = self.asMatrixSize(3).normalized()
+
+        # Get TWO differnt euler conversions then choose the best one
+        cy = np.hypot(mat[:, i, i], mat[:, i, j])
+
+        eul1 = EulerArray.zeros(len(self))
+        eul2 = EulerArray.zeros(len(self))
+
+        # use 16 because powers of two
+        epsilon = 1.6e-8
+        pos = cy > epsilon
+        neg = ~pos
+
+        eul1[pos, i] = np.arctan2(mat[pos, j, k], mat[pos, k, k])
+        eul1[pos, j] = np.arctan2(-mat[pos, i, k], cy[pos])
+        eul1[pos, k] = np.arctan2(mat[pos, i, j], mat[pos, i, i])
+
+        eul2[pos, i] = np.arctan2(-mat[pos, j, k], -mat[pos, k, k])
+        eul2[pos, j] = np.arctan2(-mat[pos, i, k], -cy[pos])
+        eul2[pos, k] = np.arctan2(-mat[pos, i, j], -mat[pos, i, i])
+
+        eul1[neg, i] = np.arctan2(-mat[neg, k, j], mat[neg, j, j])
+        eul1[neg, j] = np.arctan2(-mat[neg, i, k], cy[neg])
+        eul1[neg, k] = 0
+        eul2[neg] = eul1[neg]
+
+        if parity:
+            eul1, eul2 = -eul1, -eul2
+        
+        # The "best" euler is the one with the smallest abs sum
+        d1 = np.abs(eul1).sum(axis=-1)
+        d2 = np.abs(eul2).sum(axis=-1)
+        mx = d1 > d2
+        eul1[mx] = eul2[mx]
+        return eul1
 
 
 # Register the default sizes of array dynamically

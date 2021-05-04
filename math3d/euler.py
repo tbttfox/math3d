@@ -177,7 +177,14 @@ class EulerArray(ArrayBase):
     degrees: bool, optional
         Whether the angles are given in degrees or radians. Defaults to False (radians)
     """
-
+    ORDER_PARITY = {
+        "xyz": ((0, 1, 2), 0),
+        "xzy": ((0, 2, 1), 1),
+        "yxz": ((1, 0, 2), 1),
+        "yzx": ((1, 2, 0), 0),
+        "zxy": ((2, 0, 1), 0),
+        "zyx": ((2, 1, 0), 1),
+    }
     def __new__(cls, input_array=None, order="xyz", degrees=False):
         if input_array is None:
             input_array = np.array([])
@@ -331,11 +338,34 @@ class EulerArray(ArrayBase):
         """
         from .quaternion import QuaternionArray
 
-        # Convert multiple euler triples to quaternions
-        result = QuaternionArray.alignedRotations(self.order[0], self[:, 0], degrees=self._degrees)
-        for idx, axis in enumerate(self.order[1:], start=1):
-            result = QuaternionArray.alignedRotations(axis, self[:, idx], degrees=self._degrees) * result
-        return result
+        (i, j, k), parity = self.ORDER_PARITY[self.order]
+
+        cp = self.asRadians().copy()
+        cp *= 0.5
+        if parity:
+            cp[:, j] *= -1
+
+        c = np.cos(cp)
+        s = np.sin(cp)
+
+        cc = c[:, i] * c[:, k]
+        cs = c[:, i] * s[:, k]
+        sc = s[:, i] * c[:, k]
+        ss = s[:, i] * s[:, k]
+
+        a = np.zeros((len(self), 3))
+        a[:, i] = c[:, j] * sc - s[:, j] * cs
+        a[:, j] = c[:, j] * ss + s[:, j] * cc
+        a[:, k] = c[:, j] * cs - s[:, j] * sc
+
+        q = QuaternionArray.eye(len(self))
+        q[:, :3] = a
+        q[:, 3] = c[:, j] * cc + s[:, j] * ss
+
+        if parity:
+            q[:, j] *= -1
+
+        return q
 
     def asMatrixArray(self):
         """ Convert this EulerArray object to a Matrix3Array
@@ -345,5 +375,29 @@ class EulerArray(ArrayBase):
         Matrix3Array
             The current orientations as a Matrix3Array
         """
-        q = self.asQuaternionArray()
-        return q.asMatrixArray()
+        from .matrix import Matrix3Array
+        (i, j, k), parity = self.ORDER_PARITY[self.order]
+
+        cp = self.asRadians().copy()
+        if parity:
+            cp *= -1
+
+        c = np.cos(cp)
+        s = np.sin(cp)
+
+        cc = c[:, i] * c[:, k]
+        cs = c[:, i] * s[:, k]
+        sc = s[:, i] * c[:, k]
+        ss = s[:, i] * s[:, k]
+
+        out = Matrix3Array.eye(len(self))
+        out[:, i, i] = c[:, j] * c[:, k]
+        out[:, j, i] = s[:, j] * sc - cs
+        out[:, k, i] = s[:, j] * cc + ss
+        out[:, i, j] = c[:, j] * s[:, k]
+        out[:, j, j] = s[:, j] * ss + cc
+        out[:, k, j] = s[:, j] * cs - sc
+        out[:, i, k] = -s[:, j]
+        out[:, j, k] = c[:, j] * s[:, i]
+        out[:, k, k] = c[:, j] * c[:, i]
+        return out

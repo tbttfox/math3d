@@ -353,6 +353,19 @@ class QuaternionArray(ArrayBase):
         self /= self.length()[..., None]
 
     @classmethod
+    def eye(cls, length):
+        """ Alternate constructor to build an array of quaternions that are all zero
+
+        Parameters
+        ----------
+        length: int
+            The number of matrices to build
+        """
+        ret = cls(np.zeros((length, 4)))
+        ret.w = 1
+        return ret
+
+    @classmethod
     def zeros(cls, length):
         """ Alternate constructor to build an array of quaternions that are all zero
 
@@ -445,70 +458,6 @@ class QuaternionArray(ArrayBase):
         uuv *= 2
         return v + uv + uuv
 
-    def asMatrixArray(self):
-        """ Convert the quaternion array to a 3x3 matrix array
-
-        Returns
-        -------
-        Matrix3Array
-            The array of orientations
-        """
-
-        from .matrixN import Matrix3Array
-        x = self[:, 0]
-        y = self[:, 1]
-        z = self[:, 2]
-        w = self[:, 3]
-
-        xx = x * x
-        xy = x * y
-        xz = x * z
-        xw = x * w
-
-        yy = y * y
-        yz = y * z
-        yw = y * w
-
-        zz = z * z
-        zw = z * w
-
-        num_rotations = len(self)
-        mats = Matrix3Array.zeros(num_rotations)
-
-        mats[:, 0, 0] = 1 - 2 * (yy + zz)
-        mats[:, 1, 0] = 2 * (xy - zw)
-        mats[:, 2, 0] = 2 * (xz + yw)
-
-        mats[:, 0, 1] = 2 * (xy + zw)
-        mats[:, 1, 1] = 1 - 2 * (xx + zz)
-        mats[:, 2, 1] = 2 * (yz - xw)
-
-        mats[:, 0, 2] = 2 * (xz - yw)
-        mats[:, 1, 2] = 2 * (yz + xw)
-        mats[:, 2, 2] = 1 - 2 * (xx + yy)
-
-        return mats
-
-    def asEulerArray(self, order="xyz", degrees=False):
-        """ Convert the quaternion to an array of Euler rotations
-
-        Parameters
-        ----------
-        order: str, optional
-            The order in which the axis rotations are applied
-            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
-            Defaults to 'xyz'
-        degrees: bool, optional
-            Whether the angles are given in degrees or radians. Defaults to False (radians)
-
-        Returns
-        -------
-        EulerArray:
-            The converted orientation Array
-        """
-        m = self.asMatrixArray()
-        return m.asEulerArray(order=order, degrees=degrees)
-
     def __mul__(self, other):
         other = arrayCompat(other)
         if isinstance(other, QuaternionArray):
@@ -591,3 +540,58 @@ class QuaternionArray(ArrayBase):
         ratioA = np.sin((1 - tVal) * halfAngle) / sinHalfAngle
         ratioB = np.sin(tVal * halfAngle) / sinHalfAngle
         return (self * ratioA) + (other * ratioB)
+
+    def asEulerArray(self, order="xyz", degrees=False):
+        """ Convert the quaternion to an array of Euler rotations
+
+        Parameters
+        ----------
+        order: str, optional
+            The order in which the axis rotations are applied
+            It must be one of these options ['xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyz']
+            Defaults to 'xyz'
+        degrees: bool, optional
+            Whether the angles are given in degrees or radians. Defaults to False (radians)
+
+        Returns
+        -------
+        EulerArray:
+            The converted orientation Array
+        """
+        return self.asMatrixArray().asEulerArray(order=order, degrees=degrees)
+
+    def asMatrixArray(self):
+        """ Convert the quaternion array to a 3x3 matrix array
+
+        Returns
+        -------
+        Matrix3Array
+            The array of orientations
+        """
+        from .matrix import Matrix3Array
+
+        q = self * np.sqrt(2)
+
+        qda = q[:, 3] * q[:, 0]
+        qdb = q[:, 3] * q[:, 1]
+        qdc = q[:, 3] * q[:, 2]
+        qaa = q[:, 0] * q[:, 0]
+        qab = q[:, 0] * q[:, 1]
+        qac = q[:, 0] * q[:, 2]
+        qbb = q[:, 1] * q[:, 1]
+        qbc = q[:, 1] * q[:, 2]
+        qcc = q[:, 2] * q[:, 2]
+
+        m = Matrix3Array.eye(len(self))
+        m[:, 0, 0] = 1.0 - qbb - qcc
+        m[:, 0, 1] = qdc + qab
+        m[:, 0, 2] = -qdb + qac
+
+        m[:, 1, 0] = -qdc + qab
+        m[:, 1, 1] = 1.0 - qaa - qcc
+        m[:, 1, 2] = qda + qbc
+
+        m[:, 2, 0] = qdb + qac
+        m[:, 2, 1] = -qda + qbc
+        m[:, 2, 2] = 1.0 - qaa - qbb
+        return m
