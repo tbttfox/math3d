@@ -61,3 +61,16 @@ def toType(typ, *args):
     """ Cast all the args to the given type, but only if needed """
     args = [asarray(a) for a in args]
     return [a if isinstance(a, typ) else a.view(typ) for a in args]
+
+
+def sliceLength(s):
+    """ Return the count of values that a slice would create """
+    start, stop, step = s.start, s.stop, s.step
+
+    start = start or 0
+    step = step or 1
+    rng = stop - start
+
+    r1 = rng // step
+    r2 = 1 if rng % step else 0
+    return r1 + r2

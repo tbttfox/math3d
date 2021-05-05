@@ -1,6 +1,6 @@
 import numpy as np
 from vectorN import VectorN, VectorNArray, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
-from .utils import arrayCompat
+from .utils import arrayCompat, sliceLength
 from .base import MathBase, ArrayBase
 
 class MatrixN(MathBase):
@@ -48,8 +48,8 @@ class MatrixN(MathBase):
         elif len(shape) == 2:
             if shape == (cls.N, cls.N):
                 return cls
-            if shape[-1] == cls.N:
-                return cls.vectorArrayType
+            if shape[-1] in VECTOR_ARRAY_BY_SIZE:
+                return VECTOR_ARRAY_BY_SIZE[shape[-1]]
         elif len(shape) == 3:
             if shape[-2:] == (cls.N, cls.N):
                 return cls.arrayType
@@ -284,7 +284,8 @@ class MatrixNArray(ArrayBase):
                     if not isinstance(idx[-1], slice):
                         return ret.view(VECTOR_ARRAY_BY_SIZE[self.N])
                     elif idx[-1] != slice(None, None, None):
-                        return ret.view(VECTOR_ARRAY_BY_SIZE[self.N])
+                        num = sliceLength(idx[-1])
+                        return ret.view(VECTOR_ARRAY_BY_SIZE[num])
             except ValueError:
                 print idx
                 raise
@@ -526,7 +527,7 @@ class MatrixNArray(ArrayBase):
         """ Get the scale of each matrix column """
         return np.sqrt(np.einsum("...ij,...ij->...j", self, self))
 
-   def _handedness(self):
+    def _handedness(self):
         """ Get the handedness of each matrix. -1 means left-handed """
         # look for flipped matrices
         flips = self[:, 0].cross(self[:, 1]).dot(self[:, 2])
@@ -645,6 +646,7 @@ class MatrixNArray(ArrayBase):
         """
 
         from .quaternion import QuaternionArray
+        from .vectorN import Vector3Array
 
         # work on a copy */
         mat = self.normalized()
@@ -654,6 +656,7 @@ class MatrixNArray(ArrayBase):
         nor[:, 0] = mat[:, 2, 1]
         nor[:, 1] = -mat[:, 2, 0]
         nor.normalize()
+        nor[np.isnan(nor)] = 0
 
         co = mat[:, 2, 2]
         co[co <= -1.0] = -1.0
@@ -668,7 +671,7 @@ class MatrixNArray(ArrayBase):
 
         # rotate back x-axis from mat, using inverse q1 */
         matr = q1.asMatrixArray()
-        matn = mat[:, 0] * matr.inverse()
+        mat[:, 0, :3] = mat[:, 0, :3] * matr.inverse()
 
         # and align x-axes */
         angle = 0.5 * np.arctan2(mat[:, 0, 1], mat[:, 0, 0])

@@ -568,7 +568,7 @@ class QuaternionArray(ArrayBase):
         Matrix3Array
             The array of orientations
         """
-        from .matrix import Matrix3Array
+        from .matrixN import Matrix3Array
 
         q = self * np.sqrt(2)
 

@@ -371,17 +371,26 @@ class VectorNArray(ArrayBase):
 
     def normal(self):
         """ Return the normalized vectors
+        Zero-length vectors will be set to zero
 
         Returns
         -------
         VectorNArray:
             The normalized vectors
         """
-        return self / self.length()[..., None]
+        d = self.length()
+        where = d > 1.0e-35
+        ret = self[where] / d[where, ..., None]
+        ret[~where] = 0
+        return ret
 
     def normalize(self):
-        """ Normalize the vectors in-place """
-        self /= self.length()[..., None]
+        """ Normalize the vectors in-place.
+        Zero-length vectors will be set to zero """
+        d = self.length()
+        where = d > 1.0e-35
+        self[where] /= d[where, ..., None]
+        self[~where] = 0
 
     @classmethod
     def zeros(cls, length):
@@ -497,8 +506,8 @@ class VectorNArray(ArrayBase):
             if other.N < self.N:
                 raise TypeError("Can't mutiply a vector by a smaller matrix")
             exp = self.asVectorSize(other.N)
-            ret = np.einsum("...ij, ...ijk -> ...ik", exp, other)
-            return ret.asVectorSize(self.N)
+            ret = np.einsum("...ij,...ijk->...ik", exp, other)
+            return ret.view(type(self))
 
         from .quaternion import Quaternion, QuaternionArray
 

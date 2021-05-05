@@ -375,7 +375,7 @@ class EulerArray(ArrayBase):
         Matrix3Array
             The current orientations as a Matrix3Array
         """
-        from .matrix import Matrix3Array
+        from .matrixN import Matrix3Array
         (i, j, k), parity = self.ORDER_PARITY[self.order]
 
         cp = self.asRadians().copy()
