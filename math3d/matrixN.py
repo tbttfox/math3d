@@ -589,11 +589,6 @@ class MatrixNArray(ArrayBase):
         scale = m33._scales() * m33._handedness()[..., None]
         return VECTOR_ARRAY_BY_SIZE[3](scale)
 
-
-
-
-
-
     def asTranslationArray(self):
         """ Return the translation part of the matrixes
 
@@ -646,13 +641,12 @@ class MatrixNArray(ArrayBase):
         """
 
         from .quaternion import QuaternionArray
-        from .vectorN import Vector3Array
 
         # work on a copy */
         mat = self.normalized()
 
         # rotate z-axis of matrix to z-axis */
-        nor = Vector3Array.zeros(len(self))
+        nor = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self))
         nor[:, 0] = mat[:, 2, 1]
         nor[:, 1] = -mat[:, 2, 0]
         nor.normalize()
@@ -680,7 +674,13 @@ class MatrixNArray(ArrayBase):
         q2 = QuaternionArray.eye(len(self))
         q2[:, 2] = si[None, :]
         q2[:, 3] = co[None, :]
-        return q1 * q2
+        q = q1 * q2
+
+        # only return quaternions where the scalar value is positive
+        negScalar = q[:, 3] < 0
+        q[negScalar] *= -1
+
+        return q
 
     def asEulerArray(self, order="xyz", degrees=False):
         """ Convert the upper left 3x3 of these matrixes to Euler rotations
@@ -702,7 +702,7 @@ class MatrixNArray(ArrayBase):
         from .euler import EulerArray
 
         (i, j, k), parity = EulerArray.ROT_ORDERS[order]
-        m = self.asMatrixSize(3).normalized()
+        mat = self.asMatrixSize(3).normalized()
 
         # Get TWO differnt euler conversions then choose the best one
         cy = np.hypot(mat[:, i, i], mat[:, i, j])
@@ -730,7 +730,7 @@ class MatrixNArray(ArrayBase):
 
         if parity:
             eul1, eul2 = -eul1, -eul2
-        
+
         # The "best" euler is the one with the smallest abs sum
         d1 = np.abs(eul1).sum(axis=-1)
         d2 = np.abs(eul2).sum(axis=-1)

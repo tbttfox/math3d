@@ -365,6 +365,10 @@ class EulerArray(ArrayBase):
         if parity:
             q[:, j] *= -1
 
+        # only return quaternions where the scalar value is positive
+        negScalar = q[:, 3] < 0
+        q[negScalar] *= -1
+
         return q
 
     def asMatrixArray(self):
