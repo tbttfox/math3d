@@ -701,7 +701,7 @@ class MatrixNArray(ArrayBase):
         """
         from .euler import EulerArray
 
-        (i, j, k), parity = EulerArray.ROT_ORDERS[order]
+        (i, j, k), parity = EulerArray.ORDER_PARITY[order]
         mat = self.asMatrixSize(3).normalized()
 
         # Get TWO differnt euler conversions then choose the best one
