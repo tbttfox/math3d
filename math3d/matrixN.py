@@ -660,7 +660,7 @@ class MatrixNArray(ArrayBase):
         si = np.sin(angle)
 
         q1 = QuaternionArray.eye(len(self))
-        q1[:, :3] = -nor * si[None, :]
+        q1[:, :3] = -nor * si[:, None]
         q1[:, 3] = co[None, :]
 
         # rotate back x-axis from mat, using inverse q1 */
