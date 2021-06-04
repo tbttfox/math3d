@@ -492,9 +492,9 @@ class MatrixNArray(ArrayBase):
             sides *= -1
 
         ret = MATRIX_ARRAY_BY_SIZE[3].eye(len(looks))
-        ret[:, :, lookAxis] = looks
-        ret[:, :, upAxis] = ups
-        ret[:, :, sideAxis] = sides
+        ret[:, lookAxis, :] = looks
+        ret[:, upAxis, :] = ups
+        ret[:, sideAxis, :] = sides
 
         return ret
 
