@@ -63,7 +63,7 @@ class ArrayBase(MathBase):
                     elif idx[-1] != slice(None, None, None):
                         return ret.view(np.ndarray)
             except ValueError:
-                print idx
+                print(idx)
                 raise
         typ = self.getReturnType(ret.shape, idx)
         if typ is None:
