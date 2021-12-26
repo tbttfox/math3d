@@ -640,6 +640,7 @@ class MatrixNArray(ArrayBase):
         QuaternionArray
             The array of orientations
         """
+        from .quaternion import QuaternionArray
         # Make hard-coded arrays
         # Based on the maxval, choose which idxs are the non-max-vals
         targetIdxs = np.array([[1, 2, 3], [0, 3, 2], [3, 0, 1], [2, 1, 0]])
@@ -650,8 +651,9 @@ class MatrixNArray(ArrayBase):
         diags = np.diagonal(self[:, :3, :3], axis1=1, axis2=2)
         traces = np.sum(diags, axis=-1)
         useTr = traces > 0
-        noTr = ~useTr
-        
+        noTr = np.where(~useTr)
+        useTr = np.where(useTr)
+
         # build an array indicating the x, y, z, or w (0, 1, 2, or 3) index
         # is the 0.25*s value
         maxes = np.argmax(diags, axis=-1)
