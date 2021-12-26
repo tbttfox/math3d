@@ -639,48 +639,43 @@ class MatrixNArray(ArrayBase):
         QuaternionArray
             The array of orientations
         """
+        # Make hard-coded arrays
+        # Based on the maxval, choose which idxs are the non-max-vals
+        targetIdxs = np.array([[1, 2, 3], [0, 3, 2], [3, 0, 1], [2, 1, 0]])
+        # And for the second number, get whether to add or subtract
+        # Is there a way to hard-code this somehow??
+        targetMuls = np.array([[1, 1, -1], [1, -1, 1], [-1, 1, 1], [-1, -1, -1]])
 
-        from .quaternion import QuaternionArray
+        diags = np.diagonal(self[:, :3, :3], axis1=1, axis2=2)
+        traces = np.sum(diags, axis=-1)
+        useTr = traces > 0
+        noTr = ~useTr
+        
+        # build an array indicating the x, y, z, or w (0, 1, 2, or 3) index
+        # is the 0.25*s value
+        maxes = np.argmax(diags, axis=-1)
+        maxes[useTr] = 3
 
-        # work on a copy */
-        mat = self.normalized()
+        # compute the S-Values
+        noTrDiags = diags[noTr]
+        noTrMaxes = maxes[noTr]
+        noTrS = noTrDiags[:, noTrMaxes] - noTrDiags[:, noTrMaxes - 1] - noTrDiags[:, noTrMaxes - 2]
+        sVals = np.zeros(len(self))
+        sVals[useTr] = np.sqrt(traces[useTr] + 1.0) * 2
+        sVals[noTr] = np.sqrt(noTrS + 1.0) * 2
 
-        # rotate z-axis of matrix to z-axis */
-        nor = VECTOR_ARRAY_BY_SIZE[3].zeros(len(self))
-        nor[:, 0] = mat[:, 2, 1]
-        nor[:, 1] = -mat[:, 2, 0]
-        nor.normalize()
-        nor[np.isnan(nor)] = 0
+        # build the empty output array
+        out = QuaternionArray.zeros(len(self))
 
-        co = mat[:, 2, 2]
-        co[co <= -1.0] = -1.0
-        co[co >= 1.0] = 1.0
-        angle = 0.5 * np.arccos(co)
-        co = np.cos(angle)
-        si = np.sin(angle)
+        # Fill up the rest of the outputs
+        tiMaxes = targetIdxs[maxes]
+        muls = targetMuls[maxes]
+        out[:, tiMaxes[:, 0]] = (self[:, 1, 0] + muls[:, 0] * self[:, 0, 1]) / sVals
+        out[:, tiMaxes[:, 1]] = (self[:, 0, 2] + muls[:, 1] * self[:, 2, 0]) / sVals
+        out[:, tiMaxes[:, 2]] = (self[:, 2, 1] + muls[:, 2] * self[:, 1, 2]) / sVals
+        out[:, maxes] = sVals * 0.25
 
-        q1 = QuaternionArray.eye(len(self))
-        q1[:, :3] = -nor * si[:, None]
-        q1[:, 3] = co[None, :]
-
-        # rotate back x-axis from mat, using inverse q1 */
-        matr = q1.asMatrixArray()
-        mat[:, 0, :3] = mat[:, 0, :3] * matr.inverse()
-
-        # and align x-axes */
-        angle = 0.5 * np.arctan2(mat[:, 0, 1], mat[:, 0, 0])
-        co = np.cos(angle)
-        si = np.sin(angle)
-        q2 = QuaternionArray.eye(len(self))
-        q2[:, 2] = si[None, :]
-        q2[:, 3] = co[None, :]
-        q = q1 * q2
-
-        # only return quaternions where the scalar value is positive
-        negScalar = q[:, 3] < 0
-        q[negScalar] *= -1
-
-        return q
+        return out
 
     def asEulerArray(self, order="xyz", degrees=False):
         """ Convert the upper left 3x3 of these matrixes to Euler rotations
