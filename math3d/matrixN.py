@@ -1,5 +1,6 @@
+from __future__ import print_function, absolute_import
 import numpy as np
-from vectorN import VectorN, VectorNArray, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
+from .vectorN import VectorN, VectorNArray, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
 from .utils import arrayCompat, sliceLength
 from .base import MathBase, ArrayBase
 
@@ -287,7 +288,7 @@ class MatrixNArray(ArrayBase):
                         num = sliceLength(idx[-1])
                         return ret.view(VECTOR_ARRAY_BY_SIZE[num])
             except ValueError:
-                print idx
+                print(idx)
                 raise
         typ = self.getReturnType(ret.shape, idx)
         if typ is None:

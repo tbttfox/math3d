@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import
 import numpy as np
 from .utils import arrayCompat, asarray
 from .base import MathBase, ArrayBase

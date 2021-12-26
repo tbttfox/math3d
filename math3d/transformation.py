@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import
 import numpy as np
 from .vectorN import Vector3, Vector3Array, VectorN, VectorNArray
 from .quaternion import Quaternion, QuaternionArray
