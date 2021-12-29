@@ -89,9 +89,9 @@ class MatrixN(MathBase):
         """
         return self.asArray().asEulerArray(order=order, degrees=degrees)[0]
 
-    def asQuaternion(self):
+    def asQuaternion(self, positiveReal=False):
         """ Convert the upper left 3x3 of this matrix to an Quaternion rotation"""
-        return self.asArray().asQuaternionArray()[0]
+        return self.asArray().asQuaternionArray(positiveReal=positiveReal)[0]
 
     def inverse(self):
         """ Return the inverse of the current matrix """
@@ -294,7 +294,6 @@ class MatrixNArray(ArrayBase):
         if typ is None:
             return ret
         return ret.view(typ)
-
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
@@ -560,8 +559,6 @@ class MatrixNArray(ArrayBase):
         """
         return self.asMatrixSize(3)._handedness()
 
-
-
     def asRotScaleArray(self):
         """ Get a normalized, right-handed rotation matrix along with the
         scales that were passed in
@@ -632,8 +629,18 @@ class MatrixNArray(ArrayBase):
     def flattened(self):
         return self.reshape((-1, self.N**2))
 
-    def asQuaternionArray(self):
+    def asQuaternionArray(self, positiveReal=False):
         """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
+
+        Because of quaternion double-cover q and -q result in the same rotation
+        And when using this algorithm, it is possible to flip between them at
+        certain angles. To remedy this, there is an option to return only quats
+        where the real part is positive
+
+        Arguments
+        -------
+        positveReal: bool, optional
+            Whether to ensure the real value of the quaternion is always positive
 
         Returns
         -------
@@ -677,6 +684,56 @@ class MatrixNArray(ArrayBase):
         out[:, tiMaxes[:, 1]] = (self[:, 0, 2] + muls[:, 1] * self[:, 2, 0]) / sVals
         out[:, tiMaxes[:, 2]] = (self[:, 2, 1] + muls[:, 2] * self[:, 1, 2]) / sVals
         out[:, maxes] = sVals * 0.25
+
+        if positiveReal:
+            # Invert any quaternions that have a negative real (w) value
+            wh = np.where(out[:, 3] < 0)
+            out[wh] = -out[wh]
+
+        return out
+
+    def _asQuaternionArray_copysign(self, positiveReal=False):
+        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
+        Uses an alternative algorithm that's more consistent in most cases
+        cases. ie, there won't be sign-flips at the +-120 deg angles
+        However it can't handle skew, or negative scale very well
+        Also, the singularity at 180 can't be avoided as easily
+
+        Arguments
+        -------
+        positveReal: bool, optional
+            Whether to ensure the real value of the quaternion is always positive
+
+        Returns
+        -------
+        QuaternionArray
+            The array of orientations
+        """
+        # This function is currently for development purposes, and should
+        # probably be left in since it's fully working. I'm not sure how
+        # best to handle switching between the two algorithms
+        # It's definitely worth having in here because the one above
+        # has caused some annoying flipping in the past where I wasn't
+        # expecting any
+        from .quaternion import QuaternionArray
+
+        out = QuaternionArray.zeros(len(self))
+
+        out[:, 0] =  1 + self[:, 0, 0] - self[:, 1, 1] - self[:, 2, 2]  
+        out[:, 1] =  1 - self[:, 0, 0] + self[:, 1, 1] - self[:, 2, 2]  
+        out[:, 2] =  1 - self[:, 0, 0] - self[:, 1, 1] + self[:, 2, 2]  
+        out[:, 3] =  1 + self[:, 0, 0] + self[:, 1, 1] + self[:, 2, 2]  
+
+        out = 0.5 * np.sqrt(np.maximum(out, 0))
+
+        out[:, 1] = np.copysign(out[:, 1], self[:, 2, 1] - self[:, 1, 2])
+        out[:, 2] = np.copysign(out[:, 2], self[:, 0, 2] - self[:, 2, 0])
+        out[:, 3] = np.copysign(out[:, 3], self[:, 1, 0] - self[:, 0, 1])
+
+        if positiveReal:
+            # Invert any quaternions that have a negative real (w) value
+            wh = np.where(out[:, 3] < 0)
+            out[wh] = -out[wh]
 
         return out
 
