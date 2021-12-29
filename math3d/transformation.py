@@ -119,7 +119,7 @@ class Transformation(MathBase):
         return ret
 
     def mirrored(self, axis="x"):
-        """ Mirror the transformation along the given axis
+        """Mirror the transformation along the given axis
 
         Parameters
         ----------
@@ -135,7 +135,12 @@ class Transformation(MathBase):
 
     @classmethod
     def lookAt(
-        cls, position, look, normal, axis="xy", negativeSide=False,
+        cls,
+        position,
+        look,
+        normal,
+        axis="xy",
+        negativeSide=False,
     ):
         """
         Make a vector-oriented Transformation from a position, a major look
@@ -179,12 +184,13 @@ class Transformation(MathBase):
             msg += "Make sure when you multiply it's in `child * parent * grandparent` order"
             raise TypeError(msg)
 
-        if hasattr(other, 'asMatrix'):
+        if hasattr(other, "asMatrix"):
             other = other.asMatrix()
-        elif hasattr(other, 'asMatrixArray'):
+        elif hasattr(other, "asMatrixArray"):
             other = other.asMatrixArray()
         ret = self.asMatrix() * other
         return ret.asTransform()
+
 
 class TransformationArray(ArrayBase):
     def __new__(cls, input_array=None):
@@ -196,7 +202,7 @@ class TransformationArray(ArrayBase):
 
     @classmethod
     def eye(cls, length):
-        """ Alternate constructor to build an array of transformations that are all the identity
+        """Alternate constructor to build an array of transformations that are all the identity
 
         Parameters
         ----------
@@ -306,15 +312,15 @@ class TransformationArray(ArrayBase):
             msg += "Make sure when you multiply it's in `child * parent * grandparent` order"
             raise TypeError(msg)
 
-        if hasattr(other, 'asMatrix'):
+        if hasattr(other, "asMatrix"):
             other = other.asMatrix()
-        elif hasattr(other, 'asMatrixArray'):
+        elif hasattr(other, "asMatrixArray"):
             other = other.asMatrixArray()
         ret = self.asMatrixArray() * other
         return ret.asTransform()
 
     def _convertToCompatibleType(self, value):
-        """ Convert a value to a type compatible with
+        """Convert a value to a type compatible with
         Appending, extending, or inserting
         """
         from .matrixN import Matrix4, Matrix4Array
@@ -381,7 +387,12 @@ class TransformationArray(ArrayBase):
 
     @classmethod
     def lookAts(
-        cls, positions, looks, normals, axis="xy", negativeSide=False,
+        cls,
+        positions,
+        looks,
+        normals,
+        axis="xy",
+        negativeSide=False,
     ):
         """
         Make an array of vector-oriented Transformations
@@ -421,7 +432,12 @@ class TransformationArray(ArrayBase):
 
     @classmethod
     def chain(
-        cls, positions, normal=None, axis="xy", negativeSide=False, endTransform=True,
+        cls,
+        positions,
+        normal=None,
+        axis="xy",
+        negativeSide=False,
+        endTransform=True,
     ):
         """Alternate constructor to create a chain of transforms based on a set of positions.
 
@@ -467,7 +483,7 @@ class TransformationArray(ArrayBase):
         return ret
 
     def mirrored(self, axis="x"):
-        """ Mirror the transformation along the given axis
+        """Mirror the transformation along the given axis
 
         Parameters
         ----------

@@ -5,7 +5,7 @@ from .utils import arrayCompat
 
 class MathBase(np.ndarray):
     def asArray(self):
-        """ Return the array type of this object
+        """Return the array type of this object
 
         Returns
         -------
@@ -15,7 +15,7 @@ class MathBase(np.ndarray):
         return self[None, ...]
 
     def asNdArray(self):
-        """ Return this object as a regular numpy array
+        """Return this object as a regular numpy array
 
         Returns
         -------
@@ -26,7 +26,7 @@ class MathBase(np.ndarray):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -72,14 +72,14 @@ class ArrayBase(MathBase):
         return ret.view(typ)
 
     def _convertToCompatibleType(self, value):
-        """ Convert a value to a type compatible with
+        """Convert a value to a type compatible with
         Appending, extending, or inserting
         """
         # The default implementation just returns
         return value
 
     def appended(self, value):
-        """ Return a copy of the array with the value appended
+        """Return a copy of the array with the value appended
 
         Parameters
         ----------
@@ -94,7 +94,7 @@ class ArrayBase(MathBase):
         return ret
 
     def extended(self, value):
-        """ Return a copy of the array extended with the given values
+        """Return a copy of the array extended with the given values
 
         Parameters
         ----------
@@ -106,11 +106,11 @@ class ArrayBase(MathBase):
         newShp = list(self.shape)
         newShp[0] += len(value)
         ret = np.resize(self, newShp).view(type(self))
-        ret[-len(value):] = value
+        ret[-len(value) :] = value
         return ret
 
     def inserted(self, idx, value):
-        """ Return a copy of the array with the value inserted at the given position
+        """Return a copy of the array with the value inserted at the given position
 
         Parameters
         ----------
@@ -124,6 +124,6 @@ class ArrayBase(MathBase):
         newShp = list(self.shape)
         newShp[0] += len(value)
         ret = np.resize(self, newShp).view(type(self))
-        ret[len(value) + idx:] = self[idx:]
-        ret[idx: len(value) + idx] = value
+        ret[len(value) + idx :] = self[idx:]
+        ret[idx : len(value) + idx] = value
         return ret.view(type(self))

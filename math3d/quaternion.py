@@ -5,7 +5,8 @@ from .base import MathBase, ArrayBase
 
 
 class Quaternion(MathBase):
-    """ A single quaternion object stored in xyzw order (scalar last) """
+    """A single quaternion object stored in xyzw order (scalar last)"""
+
     def __new__(cls, input_array=None):
         if input_array is None:
             ary = np.zeros(4)
@@ -20,7 +21,7 @@ class Quaternion(MathBase):
 
     @classmethod
     def fromComponents(cls, x, y, z, w):
-        """ Build a quaternion from individual components
+        """Build a quaternion from individual components
 
         Parameters
         ----------
@@ -74,7 +75,7 @@ class Quaternion(MathBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -101,7 +102,7 @@ class Quaternion(MathBase):
         return np.ndarray
 
     def lengthSquared(self):
-        """ Return the squared length of the quaternion
+        """Return the squared length of the quaternion
 
         Returns
         -------
@@ -111,7 +112,7 @@ class Quaternion(MathBase):
         return self.asArray().lengthSquared()[0]
 
     def length(self):
-        """ Return the length of the quaternion
+        """Return the length of the quaternion
 
         Returns
         -------
@@ -121,7 +122,7 @@ class Quaternion(MathBase):
         return np.sqrt(self.lengthSquared())
 
     def normal(self):
-        """ Return the normalized quaternion
+        """Return the normalized quaternion
 
         Returns
         -------
@@ -131,7 +132,7 @@ class Quaternion(MathBase):
         return self.asArray().normal()[0]
 
     def normalize(self):
-        """ Normalize the quaternion in-place """
+        """Normalize the quaternion in-place"""
         self /= self.length()
 
     def __mul__(self, other):
@@ -142,6 +143,7 @@ class Quaternion(MathBase):
             return QuaternionArray.quatquatProduct(self[None, ...], other)
 
         from .vectorN import VectorN, VectorNArray
+
         if isinstance(other, (VectorN, VectorNArray)):
             raise NotImplementedError(
                 "Vectors must always be on the left side of the multiplication"
@@ -149,7 +151,7 @@ class Quaternion(MathBase):
         return super(Quaternion, self).__mul__(other)
 
     def asMatrix(self):
-        """ Convert the quaternion to a 3x3 matrix
+        """Convert the quaternion to a 3x3 matrix
 
         Returns
         -------
@@ -159,7 +161,7 @@ class Quaternion(MathBase):
         return self[None, ...].asMatrixArray()[0]
 
     def asEuler(self, order="xyz", degrees=False):
-        """ Convert the quaternion to an Euler rotation
+        """Convert the quaternion to an Euler rotation
 
         Parameters
         ----------
@@ -179,7 +181,7 @@ class Quaternion(MathBase):
 
     @staticmethod
     def lookAt(look, up, axis="xy"):
-        """ Alternate constructor to create a quaternion looking at a point
+        """Alternate constructor to create a quaternion looking at a point
         and twisted with the given up value
         Think of the quaternion resting at origin
 
@@ -194,12 +196,13 @@ class Quaternion(MathBase):
             ['xy', 'xz', 'yx', 'yz', 'zx', 'zy']
         """
         from .matrixN import MatrixNArray
+
         mats = MatrixNArray.lookAts(look, up, axis=axis)
         return mats.asQuaternionArray()[0]
 
     @classmethod
     def axisAngle(cls, axis, angle, degrees=False):
-        """ An alternate constructor to build a quaternion from an axis and angle
+        """An alternate constructor to build a quaternion from an axis and angle
 
         Arguments
         ---------
@@ -216,7 +219,7 @@ class Quaternion(MathBase):
 
 
 class QuaternionArray(ArrayBase):
-    """ An array of Quaternion objects """
+    """An array of Quaternion objects"""
 
     def __new__(cls, input_array=None):
         if input_array is None:
@@ -227,7 +230,7 @@ class QuaternionArray(ArrayBase):
 
     @classmethod
     def fromComponentArrays(cls, x, y, z, w):
-        """ Build a quaternion array from individual component arrays
+        """Build a quaternion array from individual component arrays
         The arrays must have the same length
 
         Parameters
@@ -283,11 +286,12 @@ class QuaternionArray(ArrayBase):
         self[:, 3] = val
 
     def _convertToCompatibleType(self, value):
-        """ Convert a value to a type compatible with
+        """Convert a value to a type compatible with
         Appending, extending, or inserting
         """
         from .matrixN import MatrixN, MatrixNArray
         from .euler import Euler, EulerArray
+
         if isinstance(value, (EulerArray, MatrixNArray)):
             return value.asQuaternionArray()
         elif isinstance(value, (Euler, MatrixN)):
@@ -296,7 +300,7 @@ class QuaternionArray(ArrayBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -320,7 +324,7 @@ class QuaternionArray(ArrayBase):
         return np.ndarray
 
     def lengthSquared(self):
-        """ Return the squared length of each quaternion
+        """Return the squared length of each quaternion
 
         Returns
         -------
@@ -330,7 +334,7 @@ class QuaternionArray(ArrayBase):
         return np.einsum("...ij,...ij->...i", self, self)
 
     def length(self):
-        """ Return the length of each quaternion
+        """Return the length of each quaternion
 
         Returns
         -------
@@ -340,7 +344,7 @@ class QuaternionArray(ArrayBase):
         return np.sqrt(self.lengthSquared())
 
     def normal(self):
-        """ Return the normalized quaternions
+        """Return the normalized quaternions
 
         Returns
         -------
@@ -350,12 +354,12 @@ class QuaternionArray(ArrayBase):
         return self / self.length()[..., None]
 
     def normalize(self):
-        """ Normalize the quaternions in-place """
+        """Normalize the quaternions in-place"""
         self /= self.length()[..., None]
 
     @classmethod
     def eye(cls, length):
-        """ Alternate constructor to build an array of quaternions that are all zero
+        """Alternate constructor to build an array of quaternions that are all zero
 
         Parameters
         ----------
@@ -368,7 +372,7 @@ class QuaternionArray(ArrayBase):
 
     @classmethod
     def zeros(cls, length):
-        """ Alternate constructor to build an array of quaternions that are all zero
+        """Alternate constructor to build an array of quaternions that are all zero
 
         Parameters
         ----------
@@ -379,7 +383,7 @@ class QuaternionArray(ArrayBase):
 
     @classmethod
     def alignedRotations(cls, axisName, angles, degrees=False):
-        """ An alternate constructor to build a quaternion from a basis vector and angle
+        """An alternate constructor to build a quaternion from a basis vector and angle
 
         Arguments
         ---------
@@ -403,7 +407,7 @@ class QuaternionArray(ArrayBase):
 
     @classmethod
     def axisAngle(cls, axes, angles, degrees=False):
-        """ An alternate constructor to build a quaternion from an axis and angle
+        """An alternate constructor to build a quaternion from an axis and angle
 
         Arguments
         ---------
@@ -429,7 +433,7 @@ class QuaternionArray(ArrayBase):
 
     @classmethod
     def quatquatProduct(cls, p, q):
-        """ A multiplication of two quaternions
+        """A multiplication of two quaternions
         You shouldn't be calling this directly
         It provides no checks for correct inputs
         """
@@ -446,7 +450,7 @@ class QuaternionArray(ArrayBase):
 
     @staticmethod
     def vectorquatproduct(v, q):
-        """ A multiplication of a vectorArray and a quaternionArray
+        """A multiplication of a vectorArray and a quaternionArray
         You shouldn't be calling this directly
         It provides no checks for correct inputs
         """
@@ -475,7 +479,7 @@ class QuaternionArray(ArrayBase):
 
     @staticmethod
     def lookAts(looks, ups, axis="xy"):
-        """ An alternate constructor to look along the look-vectors, oriented to the up-vectors
+        """An alternate constructor to look along the look-vectors, oriented to the up-vectors
 
         Parameters
         ----------
@@ -497,7 +501,7 @@ class QuaternionArray(ArrayBase):
         return mats.asQuaternionArray()
 
     def angles(self, other):
-        """ Return the minimal angles between two quaternion rotations
+        """Return the minimal angles between two quaternion rotations
 
         Parameters
         ----------
@@ -513,7 +517,7 @@ class QuaternionArray(ArrayBase):
         return 2 * np.acos(np.einsum("...ij, ...ij -> ...i", self, other))
 
     def slerp(self, other, tVal):
-        """ Perform item-wise spherical linear interpolation at the given sample points
+        """Perform item-wise spherical linear interpolation at the given sample points
 
         Parameters
         ----------
@@ -543,7 +547,7 @@ class QuaternionArray(ArrayBase):
         return (self * ratioA) + (other * ratioB)
 
     def asEulerArray(self, order="xyz", degrees=False):
-        """ Convert the quaternion to an array of Euler rotations
+        """Convert the quaternion to an array of Euler rotations
 
         Parameters
         ----------
@@ -562,7 +566,7 @@ class QuaternionArray(ArrayBase):
         return self.asMatrixArray().asEulerArray(order=order, degrees=degrees)
 
     def asMatrixArray(self):
-        """ Convert the quaternion array to a 3x3 matrix array
+        """Convert the quaternion array to a 3x3 matrix array
 
         Returns
         -------

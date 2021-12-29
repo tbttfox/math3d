@@ -4,8 +4,9 @@ from .vectorN import VectorN, VectorNArray, VECTOR_BY_SIZE, VECTOR_ARRAY_BY_SIZE
 from .utils import arrayCompat, sliceLength
 from .base import MathBase, ArrayBase
 
+
 class MatrixN(MathBase):
-    """ An NxN matrix which can represent rotations and transforms
+    """An NxN matrix which can represent rotations and transforms
 
     Parameters
     ----------
@@ -28,7 +29,7 @@ class MatrixN(MathBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -57,7 +58,7 @@ class MatrixN(MathBase):
         return np.ndarray
 
     def asMatrixSize(self, n):
-        """ Return a square matrix of a given size based on the current matrix.
+        """Return a square matrix of a given size based on the current matrix.
         If the size is smaller, keep the upper left square of the matrix
         If the size is bigger, the new entries will the same as the identity matrix
 
@@ -76,7 +77,7 @@ class MatrixN(MathBase):
         return ret
 
     def asEuler(self, order="xyz", degrees=False):
-        """ Convert the upper left 3x3 of this matrix to an Euler rotation
+        """Convert the upper left 3x3 of this matrix to an Euler rotation
 
         Parameters
         ----------
@@ -90,15 +91,15 @@ class MatrixN(MathBase):
         return self.asArray().asEulerArray(order=order, degrees=degrees)[0]
 
     def asQuaternion(self, positiveReal=False):
-        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation"""
+        """Convert the upper left 3x3 of this matrix to an Quaternion rotation"""
         return self.asArray().asQuaternionArray(positiveReal=positiveReal)[0]
 
     def inverse(self):
-        """ Return the inverse of the current matrix """
+        """Return the inverse of the current matrix"""
         return np.linalg.inv(self)
 
     def invert(self):
-        """ Invert the current matrix in-place """
+        """Invert the current matrix in-place"""
         self[:] = np.linalg.inv(self)
 
     def __mul__(self, other):
@@ -118,7 +119,7 @@ class MatrixN(MathBase):
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
             aa = self.asArray()
-            return np.einsum('xij,xjk->xik', aa, other).view(type(aa))
+            return np.einsum("xij,xjk->xik", aa, other).view(type(aa))
         return super(MatrixN, self).__mul__(other)
 
     def __imul__(self, other):
@@ -137,7 +138,7 @@ class MatrixN(MathBase):
 
     @staticmethod
     def lookAt(look, up, axis="xy"):
-        """ Alternate constructor to create a 3x3 matrix looking at a point
+        """Alternate constructor to create a 3x3 matrix looking at a point
         and twisted with the given up value
         Think of the 3x3 matrix resting at origin
 
@@ -154,7 +155,7 @@ class MatrixN(MathBase):
         return MatrixNArray.lookAts([look], [up], axis=axis)[0]
 
     def changeUpAxis(self, oldUpAxis, newUpAxis):
-        """ Rotate the matrix so that the newUpAxis points where the oldUpAxis was
+        """Rotate the matrix so that the newUpAxis points where the oldUpAxis was
 
         Parameters
         ----------
@@ -166,7 +167,7 @@ class MatrixN(MathBase):
         return self.asArray().changeUpAxis(oldUpAxis, newUpAxis)[0]
 
     def decompose(self):
-        """ Decompose the matrix into Translation, Rotation, and Scale
+        """Decompose the matrix into Translation, Rotation, and Scale
 
         Returns
         -------
@@ -181,7 +182,7 @@ class MatrixN(MathBase):
         return t[0], r[0], s[0]
 
     def asScale(self):
-        """ Return the scale part of the matrix
+        """Return the scale part of the matrix
 
         Returns
         -------
@@ -191,7 +192,7 @@ class MatrixN(MathBase):
         return self.asArray().asScaleArray()[0]
 
     def asTranslation(self):
-        """ Return the translation part of the matrix
+        """Return the translation part of the matrix
 
         Returns
         -------
@@ -201,7 +202,7 @@ class MatrixN(MathBase):
         return self.asArray().asTranslationArray()[0]
 
     def asTransform(self):
-        """ Convert this matrix to a Transform
+        """Convert this matrix to a Transform
 
         Returns
         -------
@@ -211,10 +212,10 @@ class MatrixN(MathBase):
         return self.asArray().asTransformArray()[0]
 
     def flattened(self):
-        return self.reshape(self.N**2)
+        return self.reshape(self.N ** 2)
 
     def getHandedness(self):
-        """ Return the handedness of each matrix in the array
+        """Return the handedness of each matrix in the array
 
         Returns
         -------
@@ -224,7 +225,7 @@ class MatrixN(MathBase):
         return self.asArray().getHandedness()[0]
 
     def asRotScale(self):
-        """ Get a normalized, right-handed rotation matrix along with the
+        """Get a normalized, right-handed rotation matrix along with the
         scale that was passed in
 
         Returns
@@ -238,7 +239,7 @@ class MatrixN(MathBase):
         return r[0], s[0]
 
     def normalized(self):
-        """ return a normalized, rotation matrix
+        """return a normalized, rotation matrix
 
         Returns
         -------
@@ -248,7 +249,7 @@ class MatrixN(MathBase):
         return self.asArray().normalized()[0]
 
     def normalize(self):
-        """ Normalize the rotation matrix in-place """
+        """Normalize the rotation matrix in-place"""
         self[:3, :3] = self.normalized()
 
 
@@ -261,12 +262,13 @@ class MatrixNArray(ArrayBase):
         return ary.view(cls)
 
     def _convertToCompatibleType(self, value):
-        """ Convert a value to a type compatible with
+        """Convert a value to a type compatible with
         Appending, extending, or inserting
         """
         from .quaternion import Quaternion, QuaternionArray
         from .euler import Euler, EulerArray
         from .transformation import Transformation, TransformationArray
+
         if isinstance(value, (EulerArray, QuaternionArray, TransformationArray)):
             return value.asMatrixArray()
         elif isinstance(value, (Euler, Quaternion, Transformation)):
@@ -297,7 +299,7 @@ class MatrixNArray(ArrayBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -327,7 +329,7 @@ class MatrixNArray(ArrayBase):
 
     @classmethod
     def zeros(cls, length):
-        """ Alternate constructor to build an array of matrices that are all zero
+        """Alternate constructor to build an array of matrices that are all zero
 
         Parameters
         ----------
@@ -338,7 +340,7 @@ class MatrixNArray(ArrayBase):
 
     @classmethod
     def ones(cls, length):
-        """ Alternate constructor to build an array of matrices that are all one
+        """Alternate constructor to build an array of matrices that are all one
 
         Parameters
         ----------
@@ -349,7 +351,7 @@ class MatrixNArray(ArrayBase):
 
     @classmethod
     def full(cls, length, value):
-        """ Alternate constructor to build an array of matrices that are all a given value
+        """Alternate constructor to build an array of matrices that are all a given value
 
         Parameters
         ----------
@@ -362,7 +364,7 @@ class MatrixNArray(ArrayBase):
 
     @classmethod
     def eye(cls, length):
-        """ Alternate constructor to build an array of matrices that are all the identity matrix
+        """Alternate constructor to build an array of matrices that are all the identity matrix
 
         Parameters
         ----------
@@ -374,7 +376,7 @@ class MatrixNArray(ArrayBase):
         return ret
 
     def asMatrixSize(self, n):
-        """ Return a an array of square matrixes of a given size based on the current matrix.
+        """Return a an array of square matrixes of a given size based on the current matrix.
         If the size is smaller, keep the upper left square of the matrix
         If the size is bigger, the new entries will the same as the identity matrix
 
@@ -392,7 +394,7 @@ class MatrixNArray(ArrayBase):
         return ret
 
     def inverse(self):
-        """ Return the inverse of the current matrixes
+        """Return the inverse of the current matrixes
 
         Returns
         -------
@@ -402,7 +404,7 @@ class MatrixNArray(ArrayBase):
         return np.linalg.inv(self)
 
     def invert(self):
-        """ Invert the matrices in-place """
+        """Invert the matrices in-place"""
         self[:] = np.linalg.inv(self)
 
     def __mul__(self, other):
@@ -416,13 +418,13 @@ class MatrixNArray(ArrayBase):
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
             other = arrayCompat(other, nDim=3)
-            return np.einsum('xij,xjk->xik', self, other).view(type(self))
+            return np.einsum("xij,xjk->xik", self, other).view(type(self))
 
         if isinstance(other, MatrixNArray):
             if other.N != self.N:
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
-            return np.einsum('xij,xjk->xik', self, other).view(type(self))
+            return np.einsum("xij,xjk->xik", self, other).view(type(self))
         return super(MatrixN, self).__mul__(other)
 
     def __imul__(self, other):
@@ -436,18 +438,18 @@ class MatrixNArray(ArrayBase):
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
             other = arrayCompat(other, nDim=3)
-            self[:] = np.einsum('xij,xjk->xik', self, other)
+            self[:] = np.einsum("xij,xjk->xik", self, other)
 
         if isinstance(other, MatrixNArray):
             if other.N != self.N:
                 msg = "Cannot multiply matrices of different sizes. Got {0} and {1}"
                 raise TypeError(msg.format(self.N, other.N))
-            self[:] = np.einsum('xij,xjk->xik', self, other)
+            self[:] = np.einsum("xij,xjk->xik", self, other)
         return super(MatrixN, self).__mul__(other)
 
     @staticmethod
     def lookAts(looks, ups, axis="xy"):
-        """ Set the upper 3x3 of these matrices to look along the look-vectors, oriented to the up-vectors
+        """Set the upper 3x3 of these matrices to look along the look-vectors, oriented to the up-vectors
 
         Parameters
         ----------
@@ -499,7 +501,7 @@ class MatrixNArray(ArrayBase):
         return ret
 
     def changeUpAxis(self, oldUpAxis, newUpAxis):
-        """ Rotate each of the matrixes so that the newUpAxis points where the oldUpAxis was
+        """Rotate each of the matrixes so that the newUpAxis points where the oldUpAxis was
 
         Parameters
         ----------
@@ -524,11 +526,11 @@ class MatrixNArray(ArrayBase):
         return ret
 
     def _scales(self):
-        """ Get the scale of each matrix column """
+        """Get the scale of each matrix column"""
         return np.sqrt(np.einsum("...ij,...ij->...j", self, self))
 
     def _handedness(self):
-        """ Get the handedness of each matrix. -1 means left-handed """
+        """Get the handedness of each matrix. -1 means left-handed"""
         # look for flipped matrices
         flips = self[:, 0].cross(self[:, 1]).dot(self[:, 2])
         negs = np.ones(flips.shape)
@@ -536,7 +538,7 @@ class MatrixNArray(ArrayBase):
         return negs
 
     def normalized(self):
-        """ Return the normal of the current matrices
+        """Return the normal of the current matrices
 
         Returns
         -------
@@ -546,11 +548,11 @@ class MatrixNArray(ArrayBase):
         return self / self._scales()[:, None, :]
 
     def normalize(self):
-        """ Normalize the columns of the arrays in-place """
+        """Normalize the columns of the arrays in-place"""
         self[:] = self.normalized()
 
     def getHandedness(self):
-        """ Return the handedness of each matrix in the array
+        """Return the handedness of each matrix in the array
 
         Returns
         -------
@@ -560,7 +562,7 @@ class MatrixNArray(ArrayBase):
         return self.asMatrixSize(3)._handedness()
 
     def asRotScaleArray(self):
-        """ Get a normalized, right-handed rotation matrix along with the
+        """Get a normalized, right-handed rotation matrix along with the
         scales that were passed in
 
         Returns
@@ -576,7 +578,7 @@ class MatrixNArray(ArrayBase):
         return m33, VECTOR_ARRAY_BY_SIZE[3](scale)
 
     def asScaleArray(self):
-        """ Return the scale part of the matrixes
+        """Return the scale part of the matrixes
 
         Returns
         -------
@@ -588,7 +590,7 @@ class MatrixNArray(ArrayBase):
         return VECTOR_ARRAY_BY_SIZE[3](scale)
 
     def asTranslationArray(self):
-        """ Return the translation part of the matrixes
+        """Return the translation part of the matrixes
 
         Returns
         -------
@@ -598,7 +600,7 @@ class MatrixNArray(ArrayBase):
         return self[:, 3, :3]
 
     def decompose(self):
-        """ Decompose the matrix into Translation, Rotation, and Scale
+        """Decompose the matrix into Translation, Rotation, and Scale
 
         Returns
         -------
@@ -615,7 +617,7 @@ class MatrixNArray(ArrayBase):
         return tran, rot, scale
 
     def asTransformArray(self):
-        """ Decompose the matrixes into a transform array
+        """Decompose the matrixes into a transform array
 
         Returns
         -------
@@ -623,14 +625,15 @@ class MatrixNArray(ArrayBase):
             The transform array
         """
         from .transformation import TransformationArray
+
         t, r, s = self.asMatrixSize(4).decompose()
         return TransformationArray.fromParts(translation=t, rotation=r, scale=s)
 
     def flattened(self):
-        return self.reshape((-1, self.N**2))
+        return self.reshape((-1, self.N ** 2))
 
     def asQuaternionArray(self, positiveReal=False):
-        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
+        """Convert the upper left 3x3 of this matrix to an Quaternion rotation
 
         Because of quaternion double-cover q and -q result in the same rotation
         And when using this algorithm, it is possible to flip between them at
@@ -648,6 +651,7 @@ class MatrixNArray(ArrayBase):
             The array of orientations
         """
         from .quaternion import QuaternionArray
+
         # Make hard-coded arrays
         # Based on the maxval, choose which idxs are the non-max-vals
         targetIdxs = np.array([[1, 2, 3], [0, 3, 2], [3, 0, 1], [2, 1, 0]])
@@ -669,7 +673,11 @@ class MatrixNArray(ArrayBase):
         # compute the S-Values
         noTrDiags = diags[noTr]
         noTrMaxes = maxes[noTr]
-        noTrS = noTrDiags[:, noTrMaxes] - noTrDiags[:, noTrMaxes - 1] - noTrDiags[:, noTrMaxes - 2]
+        noTrS = (
+            noTrDiags[:, noTrMaxes]
+            - noTrDiags[:, noTrMaxes - 1]
+            - noTrDiags[:, noTrMaxes - 2]
+        )
         sVals = np.zeros(len(self))
         sVals[useTr] = np.sqrt(traces[useTr] + 1.0) * 2
         sVals[noTr] = np.sqrt(noTrS + 1.0) * 2
@@ -693,7 +701,7 @@ class MatrixNArray(ArrayBase):
         return out
 
     def _asQuaternionArray_copysign(self, positiveReal=False):
-        """ Convert the upper left 3x3 of this matrix to an Quaternion rotation
+        """Convert the upper left 3x3 of this matrix to an Quaternion rotation
         Uses an alternative algorithm that's more consistent in most cases
         cases. ie, there won't be sign-flips at the +-120 deg angles
         However it can't handle skew, or negative scale very well
@@ -719,10 +727,10 @@ class MatrixNArray(ArrayBase):
 
         out = QuaternionArray.zeros(len(self))
 
-        out[:, 0] =  1 + self[:, 0, 0] - self[:, 1, 1] - self[:, 2, 2]  
-        out[:, 1] =  1 - self[:, 0, 0] + self[:, 1, 1] - self[:, 2, 2]  
-        out[:, 2] =  1 - self[:, 0, 0] - self[:, 1, 1] + self[:, 2, 2]  
-        out[:, 3] =  1 + self[:, 0, 0] + self[:, 1, 1] + self[:, 2, 2]  
+        out[:, 0] = 1 + self[:, 0, 0] - self[:, 1, 1] - self[:, 2, 2]
+        out[:, 1] = 1 - self[:, 0, 0] + self[:, 1, 1] - self[:, 2, 2]
+        out[:, 2] = 1 - self[:, 0, 0] - self[:, 1, 1] + self[:, 2, 2]
+        out[:, 3] = 1 + self[:, 0, 0] + self[:, 1, 1] + self[:, 2, 2]
 
         out = 0.5 * np.sqrt(np.maximum(out, 0))
 
@@ -738,7 +746,7 @@ class MatrixNArray(ArrayBase):
         return out
 
     def asEulerArray(self, order="xyz", degrees=False):
-        """ Convert the upper left 3x3 of these matrixes to Euler rotations
+        """Convert the upper left 3x3 of these matrixes to Euler rotations
 
         Parameters
         ----------

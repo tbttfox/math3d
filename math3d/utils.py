@@ -3,7 +3,7 @@ import numpy as np
 
 
 def arrayCompat(*args, **kwargs):
-    """ Make sure the given arrays have compatible dimensions
+    """Make sure the given arrays have compatible dimensions
 
     Parameters
     ----------
@@ -49,7 +49,7 @@ def arrayCompat(*args, **kwargs):
 
 
 def asarray(ary):
-    """ Return a numpy array of the given object
+    """Return a numpy array of the given object
     If it is already a numpy array type (or any of the math3d subclasses)
     just return the object
     """
@@ -59,13 +59,13 @@ def asarray(ary):
 
 
 def toType(typ, *args):
-    """ Cast all the args to the given type, but only if needed """
+    """Cast all the args to the given type, but only if needed"""
     args = [asarray(a) for a in args]
     return [a if isinstance(a, typ) else a.view(typ) for a in args]
 
 
 def sliceLength(s):
-    """ Return the count of values that a slice would create """
+    """Return the count of values that a slice would create"""
     start, stop, step = s.start, s.stop, s.step
 
     start = start or 0

@@ -50,7 +50,7 @@ class VectorN(MathBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -79,7 +79,7 @@ class VectorN(MathBase):
         return np.ndarray
 
     def lengthSquared(self):
-        """ Return the squared length of each vector
+        """Return the squared length of each vector
 
         Returns
         -------
@@ -89,7 +89,7 @@ class VectorN(MathBase):
         return (self * self).sum()
 
     def length(self):
-        """ Return the length of each vector
+        """Return the length of each vector
 
         Returns
         -------
@@ -99,7 +99,7 @@ class VectorN(MathBase):
         return np.sqrt(self.lengthSquared())
 
     def normal(self):
-        """ Return the normalized vector
+        """Return the normalized vector
 
         Returns
         -------
@@ -109,21 +109,21 @@ class VectorN(MathBase):
         return self.asArray().normal()[0]
 
     def normalize(self):
-        """ Normalize the vector in-place """
+        """Normalize the vector in-place"""
         self /= self.length()
 
     @classmethod
     def ones(cls):
-        """ Alternate constructor to build a vector of all ones """
+        """Alternate constructor to build a vector of all ones"""
         return cls(np.ones(cls.N))
 
     @classmethod
     def full(cls, value):
-        """ Alternate constructor to build a vector of a given value """
+        """Alternate constructor to build a vector of a given value"""
         return cls(np.full(cls.N, value))
 
     def asVectorSize(self, n, pad=1.0):
-        """ Return a vector of a given size based on the current vector.
+        """Return a vector of a given size based on the current vector.
         Discard the ending items if the size is smaller
         Pad up if the size is bigger, filled with the pad value
 
@@ -147,7 +147,7 @@ class VectorN(MathBase):
         return ret
 
     def cross(self, other):
-        """ Take Cross product with another vector
+        """Take Cross product with another vector
 
         Parameters
         ----------
@@ -227,7 +227,7 @@ class VectorN(MathBase):
 
     @classmethod
     def planeNormal(cls, center, pos1, pos2, normalize=False):
-        """ Convenience constructor to build a plane normal based off 3 points
+        """Convenience constructor to build a plane normal based off 3 points
         Simply cross the "spoke" vectors from the centers
             (pos1-center) x (pos2-center)
 
@@ -248,7 +248,7 @@ class VectorN(MathBase):
         return ret[0]
 
     def distance(self, other):
-        """ Get the per-point distances to another set of vectors
+        """Get the per-point distances to another set of vectors
 
         Parameters
         ----------
@@ -282,6 +282,7 @@ class VectorN(MathBase):
         sa = self.asArray()
         angles = sa.angle(other)
         return angles[0]
+
 
 class VectorNArray(ArrayBase):
     def __new__(cls, input_array=None):
@@ -325,7 +326,7 @@ class VectorNArray(ArrayBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -351,7 +352,7 @@ class VectorNArray(ArrayBase):
         return np.ndarray
 
     def lengthSquared(self):
-        """ Return the squared length of each vector
+        """Return the squared length of each vector
 
         Returns
         -------
@@ -361,7 +362,7 @@ class VectorNArray(ArrayBase):
         return np.einsum("...ij,...ij->...i", self, self)
 
     def length(self):
-        """ Return the length of each vector
+        """Return the length of each vector
 
         Returns
         -------
@@ -371,7 +372,7 @@ class VectorNArray(ArrayBase):
         return np.sqrt(self.lengthSquared())
 
     def normal(self):
-        """ Return the normalized vectors
+        """Return the normalized vectors
         Zero-length vectors will be set to zero
 
         Returns
@@ -386,8 +387,8 @@ class VectorNArray(ArrayBase):
         return ret
 
     def normalize(self):
-        """ Normalize the vectors in-place.
-        Zero-length vectors will be set to zero """
+        """Normalize the vectors in-place.
+        Zero-length vectors will be set to zero"""
         d = self.length()
         where = d > 1.0e-35
         self[where] /= d[where, ..., None]
@@ -395,7 +396,7 @@ class VectorNArray(ArrayBase):
 
     @classmethod
     def zeros(cls, length):
-        """ Alternate constructor to build a vector of all zeros
+        """Alternate constructor to build a vector of all zeros
 
         Parameters
         ----------
@@ -406,7 +407,7 @@ class VectorNArray(ArrayBase):
 
     @classmethod
     def ones(cls, length):
-        """ Alternate constructor to build a vector of all ones
+        """Alternate constructor to build a vector of all ones
 
         Parameters
         ----------
@@ -417,7 +418,7 @@ class VectorNArray(ArrayBase):
 
     @classmethod
     def full(cls, length, value):
-        """ Alternate constructor to build a vector of a given value
+        """Alternate constructor to build a vector of a given value
 
         Parameters
         ----------
@@ -429,7 +430,7 @@ class VectorNArray(ArrayBase):
         return cls(np.full((length, cls.N), value))
 
     def asVectorSize(self, n, pad=1.0):
-        """ Return a vector of a given size based on the current vector.
+        """Return a vector of a given size based on the current vector.
         Discard the ending items if the size is smaller
         Pad up if the size is bigger, filled with the pad value
 
@@ -453,7 +454,7 @@ class VectorNArray(ArrayBase):
         return ret
 
     def cross(self, other):
-        """ Take Cross product with another array of vector
+        """Take Cross product with another array of vector
 
         Parameters
         ----------
@@ -522,8 +523,8 @@ class VectorNArray(ArrayBase):
             ret = QuaternionArray.vectorquatproduct(exp, other)
             return ret.asVectorSize(self.N)
 
-
         from .transformation import Transformation, TransformationArray
+
         if isinstance(other, Transformation):
             a = self * other.scale.view(np.array)
             b = a * other.rotation
@@ -535,9 +536,8 @@ class VectorNArray(ArrayBase):
 
         return super(VectorNArray, self).__mul__(other)
 
-
     def angle(self, other):
-        """ Get the angle between pairs of vectors
+        """Get the angle between pairs of vectors
 
         Parameters
         ----------
@@ -557,7 +557,7 @@ class VectorNArray(ArrayBase):
 
     @classmethod
     def planeNormals(cls, centers, pos1, pos2, normalize=False, fallback=True):
-        """ Convenience constructor to build plane normals based off 3 sets of points
+        """Convenience constructor to build plane normals based off 3 sets of points
         Simply cross the "spoke" vectors from the centers
             (pos1-centers) x (pos2-centers)
 
@@ -616,7 +616,7 @@ class VectorNArray(ArrayBase):
         return ret
 
     def adjacentLengths(self):
-        """ Return the distance between each adjacent pair if vertices
+        """Return the distance between each adjacent pair if vertices
 
         Returns
         -------
@@ -628,7 +628,7 @@ class VectorNArray(ArrayBase):
         return (self[1:] - self[:-1]).length()
 
     def distances(self, other):
-        """ Get the per-point distances to another set of vectors
+        """Get the per-point distances to another set of vectors
 
         Parameters
         ----------
@@ -645,7 +645,7 @@ class VectorNArray(ArrayBase):
         return (self - other).length()
 
     def lerp(self, other, percent):
-        """ Linearly interpolate between two sets of vectors
+        """Linearly interpolate between two sets of vectors
 
         Parameters
         ----------
@@ -665,7 +665,7 @@ class VectorNArray(ArrayBase):
         return ((other - self) * percent[..., None]) + self
 
     def parallelTransport(self, upv=None, inverse=False, endTransform=False):
-        """ Take a normal and transport it along these ordered points.
+        """Take a normal and transport it along these ordered points.
         When 3 adjacent points aren't in a straight line, rotate the normal
         by the angle of those points
 

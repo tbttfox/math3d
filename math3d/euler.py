@@ -4,7 +4,7 @@ from .base import MathBase, ArrayBase
 
 
 class Euler(MathBase):
-    """ A 3d Euler rotation with arbitrary axis order
+    """A 3d Euler rotation with arbitrary axis order
 
     Parameters
     ----------
@@ -77,7 +77,7 @@ class Euler(MathBase):
         return self._degrees
 
     def asRadians(self):
-        """ Return a copy of this object converted to radians
+        """Return a copy of this object converted to radians
 
         Returns
         -------
@@ -91,7 +91,7 @@ class Euler(MathBase):
         return self.copy()
 
     def asDegrees(self):
-        """ Return a copy of this object as converted to degrees
+        """Return a copy of this object as converted to degrees
 
         Returns
         -------
@@ -107,7 +107,7 @@ class Euler(MathBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -131,7 +131,7 @@ class Euler(MathBase):
         return np.ndarray
 
     def asMatrix(self):
-        """ Convert this euler object to a Matrix3
+        """Convert this euler object to a Matrix3
 
         Returns
         -------
@@ -142,7 +142,7 @@ class Euler(MathBase):
         return self.asArray().asMatrixArray()[0]
 
     def asQuaternion(self):
-        """ Convert this euler object to a Quaternion
+        """Convert this euler object to a Quaternion
 
         Returns
         -------
@@ -152,7 +152,7 @@ class Euler(MathBase):
         return self.asArray().asQuaternionArray()[0]
 
     def asNewOrder(self, order):
-        """ Create a new euler object that represents the same orientation
+        """Create a new euler object that represents the same orientation
         but composed with a different rotation order
 
         Returns
@@ -164,7 +164,7 @@ class Euler(MathBase):
 
 
 class EulerArray(ArrayBase):
-    """ An array of 3d Euler rotations with a common axis order
+    """An array of 3d Euler rotations with a common axis order
 
     Parameters
     ----------
@@ -178,6 +178,7 @@ class EulerArray(ArrayBase):
     degrees: bool, optional
         Whether the angles are given in degrees or radians. Defaults to False (radians)
     """
+
     ORDER_PARITY = {
         "xyz": ((0, 1, 2), 0),
         "xzy": ((0, 2, 1), 1),
@@ -186,6 +187,7 @@ class EulerArray(ArrayBase):
         "zxy": ((2, 0, 1), 0),
         "zyx": ((2, 1, 0), 1),
     }
+
     def __new__(cls, input_array=None, order="xyz", degrees=False):
         if input_array is None:
             input_array = np.array([])
@@ -239,7 +241,7 @@ class EulerArray(ArrayBase):
 
     @classmethod
     def getReturnType(cls, shape, idx=None):
-        """ Get the type for any return values based on the shape of the return value
+        """Get the type for any return values based on the shape of the return value
         This is mainly for internal use
 
         Parameters
@@ -263,11 +265,12 @@ class EulerArray(ArrayBase):
         return np.ndarray
 
     def _convertToCompatibleType(self, value):
-        """ Convert a value to a type compatible with
+        """Convert a value to a type compatible with
         Appending, extending, or inserting
         """
         from .quaternion import Quaternion, QuaternionArray
         from .matrixN import MatrixN, MatrixNArray
+
         if isinstance(value, (MatrixNArray, QuaternionArray)):
             return value.asEulerArray(degrees=self._degrees, order=self.order)
         elif isinstance(value, (MatrixN, Quaternion)):
@@ -279,7 +282,7 @@ class EulerArray(ArrayBase):
         return self._degrees
 
     def asRadians(self):
-        """ Return a copy of this array as converted to radians
+        """Return a copy of this array as converted to radians
 
         Returns
         -------
@@ -293,7 +296,7 @@ class EulerArray(ArrayBase):
         return self.copy()
 
     def asDegrees(self):
-        """ Return a copy of this array as converted to degrees
+        """Return a copy of this array as converted to degrees
 
         Returns
         -------
@@ -307,7 +310,7 @@ class EulerArray(ArrayBase):
         return self.copy()
 
     def asNewOrder(self, order):
-        """ Create a new EulerArray object that represents the same orientations
+        """Create a new EulerArray object that represents the same orientations
         but composed with a different rotation order
 
         Returns
@@ -320,7 +323,7 @@ class EulerArray(ArrayBase):
 
     @classmethod
     def zeros(cls, length):
-        """ Alternate constructor to build an array of all-zero Euler orientations
+        """Alternate constructor to build an array of all-zero Euler orientations
 
         Parameters
         ----------
@@ -330,7 +333,7 @@ class EulerArray(ArrayBase):
         return cls(np.zeros((length, 3)))
 
     def asQuaternionArray(self):
-        """ Convert this EulerArray object to a QuaternionArray
+        """Convert this EulerArray object to a QuaternionArray
 
         Returns
         -------
@@ -373,7 +376,7 @@ class EulerArray(ArrayBase):
         return q
 
     def asMatrixArray(self):
-        """ Convert this EulerArray object to a Matrix3Array
+        """Convert this EulerArray object to a Matrix3Array
 
         Returns
         -------
@@ -381,6 +384,7 @@ class EulerArray(ArrayBase):
             The current orientations as a Matrix3Array
         """
         from .matrixN import Matrix3Array
+
         (i, j, k), parity = self.ORDER_PARITY[self.order]
 
         cp = self.asRadians().copy()
