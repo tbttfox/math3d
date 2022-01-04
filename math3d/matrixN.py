@@ -688,10 +688,11 @@ class MatrixNArray(ArrayBase):
         # Fill up the rest of the outputs
         tiMaxes = targetIdxs[maxes]
         muls = targetMuls[maxes]
-        out[:, tiMaxes[:, 0]] = (self[:, 1, 0] + muls[:, 0] * self[:, 0, 1]) / sVals
-        out[:, tiMaxes[:, 1]] = (self[:, 0, 2] + muls[:, 1] * self[:, 2, 0]) / sVals
-        out[:, tiMaxes[:, 2]] = (self[:, 2, 1] + muls[:, 2] * self[:, 1, 2]) / sVals
-        out[:, maxes] = sVals * 0.25
+        rr = np.arange(len(self))
+        out[rr, tiMaxes[:, 0]] = (self[:, 1, 0] + muls[:, 0] * self[:, 0, 1]) / sVals
+        out[rr, tiMaxes[:, 1]] = (self[:, 0, 2] + muls[:, 1] * self[:, 2, 0]) / sVals
+        out[rr, tiMaxes[:, 2]] = (self[:, 2, 1] + muls[:, 2] * self[:, 1, 2]) / sVals
+        out[rr, maxes] = sVals * 0.25
 
         if positiveReal:
             # Invert any quaternions that have a negative real (w) value
